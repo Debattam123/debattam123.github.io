@@ -21,7 +21,7 @@ Then the site appears at `https://debattam123.github.io` (may take a few minutes
 
 ## Adding your photo later
 
-Save a portrait photo as `images/IMG_1869 2.jpg` (roughly 400×500 px) and push.
+Save a portrait photo as `images/IMG_1869.jpg` (roughly 400×500 px) and push.
 The home page picks it up automatically — until then it shows a "DD" placeholder.
 
 ## Updating content
