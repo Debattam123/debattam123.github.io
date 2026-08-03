@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Interactive visualiser: enter a loxodromic matrix from the Picard modular group PSL(2,Z[i]) and see its axis in hyperbolic 3-space together with the closed geodesic it induces on H^3/PSL(2,Z[i]).">
+<title>Loxodromic Axes in the Picard Group — Debattam Das</title>
+<link rel="stylesheet" href="style.css">
+<style>
+main.wide { max-width: 1180px; }
+
+.crumb { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem; margin: 0 0 0.4rem; }
+.crumb a { color: var(--muted); text-decoration: none; }
+.crumb a:hover { color: var(--accent); text-decoration: underline; }
+
+.app-note { color: var(--muted); font-size: 0.95rem; }
+.app-note code, code.inline { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.9em; background: #eef2f6; padding: 0 3px; border-radius: 3px; }
+
+.app-grid { display: grid; grid-template-columns: 330px 1fr; gap: 1.4rem; align-items: start; margin-top: 1rem; }
+@media (max-width: 900px) { .app-grid { grid-template-columns: 1fr; } }
+
+.panel { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 1rem 1.1rem; }
+.panel + .panel { margin-top: 1rem; }
+.panel h3 {
+  font-size: 1.02rem; color: var(--accent); font-weight: normal;
+  margin: 0 0 0.7rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--border);
+}
+
+/* matrix input */
+.matrix-wrap { display: flex; align-items: stretch; gap: 0.5rem; justify-content: center; margin: 0.2rem 0 0.8rem; }
+.brk { width: 10px; border: 2px solid var(--muted); }
+.brk.l { border-right: none; border-radius: 3px 0 0 3px; }
+.brk.r { border-left: none; border-radius: 0 3px 3px 0; }
+.mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; flex: 1; }
+.mgrid input {
+  width: 100%; padding: 0.4rem 0.3rem; text-align: center;
+  font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.95rem;
+  border: 1px solid var(--border); border-radius: 4px; color: var(--text); background: #fff;
+}
+.mgrid input:focus { outline: none; border-color: var(--accent-light); }
+.mgrid input.bad { border-color: #c0392b; background: #fdf0ee; }
+
+label.fld, span.fld { display: block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.82rem; color: var(--muted); margin-bottom: 0.25rem; }
+
+.detbar {
+  font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.83rem; color: var(--muted);
+  display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.5rem;
+}
+.detbar strong { font-family: 'SFMono-Regular', Consolas, monospace; color: var(--text); font-weight: normal; }
+.solve-row { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
+.solve-row span.fld { flex: 1 0 100%; }
+.solve-row button {
+  font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.86rem;
+  padding: 0.2rem 0.62rem; min-width: 0;
+}
+select, button {
+  font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.88rem;
+  border: 1px solid var(--border); border-radius: 4px; background: #fff; color: var(--text);
+  padding: 0.42rem 0.6rem;
+}
+select { width: 100%; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent-light); color: var(--accent); }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+button.primary:hover { background: var(--accent-light); border-color: var(--accent-light); color: #fff; }
+.btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.8rem; }
+.btn-row button { flex: 1; min-width: 90px; }
+
+.checks { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem; }
+.checks label { display: block; margin: 0.32rem 0; cursor: pointer; color: var(--text); }
+.checks input { margin-right: 0.45rem; vertical-align: middle; }
+
+/* readout */
+dl.readout { font-size: 0.9rem; margin: 0; }
+dl.readout > div { display: flex; gap: 0.6rem; padding: 0.26rem 0; border-bottom: 1px dotted var(--border); }
+dl.readout > div:last-child { border-bottom: none; }
+dl.readout dt { flex: 0 0 118px; color: var(--muted); font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.82rem; padding-top: 2px; }
+dl.readout dd { margin: 0; flex: 1; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.87rem; word-break: break-word; }
+
+.badge { display: inline-block; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.78rem; padding: 0.12rem 0.5rem; border-radius: 10px; }
+.badge.ok { background: #e6f4ea; color: #1e6b3a; }
+.badge.no { background: #fdecea; color: #a5352a; }
+.badge.mid { background: #fef6e0; color: #8a6100; }
+
+.err { color: #a5352a; font-size: 0.88rem; margin-top: 0.5rem; min-height: 1.1em; }
+
+/* viewers */
+.viewer { position: relative; background: #f7f9fb; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.viewer + .viewer { margin-top: 1rem; }
+.viewer canvas { display: block; width: 100%; height: 440px; cursor: grab; touch-action: none; }
+.viewer canvas:active { cursor: grabbing; }
+.vtitle {
+  position: absolute; top: 0; left: 0; right: 0; padding: 0.5rem 0.8rem;
+  background: linear-gradient(to bottom, rgba(247,249,251,0.97), rgba(247,249,251,0));
+  font-family: 'Helvetica Neue', Arial, sans-serif; pointer-events: none;
+}
+.vtitle strong { display: block; font-size: 0.93rem; color: var(--accent); font-weight: 600; }
+.vtitle span { font-size: 0.78rem; color: var(--muted); }
+.vhint {
+  position: absolute; bottom: 6px; right: 10px;
+  font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.72rem; color: var(--muted);
+  pointer-events: none;
+}
+.legend {
+  position: absolute; bottom: 6px; left: 10px;
+  font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.74rem; color: var(--muted);
+  pointer-events: none; line-height: 1.5;
+}
+.legend i { display: inline-block; width: 16px; height: 3px; vertical-align: middle; margin-right: 5px; border-radius: 2px; }
+
+.forms { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.82rem; margin-top: 0.6rem; }
+.forms table { border-collapse: collapse; width: 100%; }
+.forms td { padding: 0.18rem 0.35rem; border-bottom: 1px solid var(--border); }
+.forms td.k { color: var(--muted); font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.78rem; white-space: nowrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1><a href="index.html">Debattam Das</a></h1>
+  <p class="tagline">Postdoctoral Fellow · Department of Mathematics &amp; Statistics · IIT Kanpur</p>
+</header>
+<nav>
+  <a href="index.html">Home</a>
+  <a href="research.html">Research</a>
+  <a href="publications.html">Publications</a>
+  <a href="talks.html">Talks</a>
+  <a href="teaching.html">Teaching</a>
+  <a href="tools.html" class="active">Research Tools</a>
+  <a href="cv.pdf">CV</a>
+</nav>
+<main class="wide">
+  <p class="crumb"><a href="tools.html">&larr; Tools for Research</a></p>
+  <h2>Axes of Loxodromic Elements in the Picard Group</h2>
+  <p class="app-note">
+    Enter a matrix <code class="inline">[[a,b],[c,d]]</code> with <code class="inline">ad − bc = 1</code>, representing an element of
+    PSL(2,&nbsp;&#8450;). If it is loxodromic, the tool draws its <strong>axis</strong> — the geodesic in
+    <code class="inline">H³ = {(z,t) : z ∈ ℂ, t &gt; 0}</code> joining its two fixed points on
+    <code class="inline">∂H³ = ℂ ∪ {∞}</code> — and, when the entries are Gaussian integers, the
+    <strong>closed geodesic</strong> that the axis induces on the quotient orbifold
+    <code class="inline">H³/PSL(2,&nbsp;ℤ[i])</code>.
+    Entries accept Gaussian integers and general complex numbers: <code class="inline">2</code>,
+    <code class="inline">i</code>, <code class="inline">-i</code>, <code class="inline">1+i</code>, <code class="inline">3-2i</code>, <code class="inline">0.5+1.25i</code>.
+  </p>
+  <p class="app-note">
+    <strong>Entering your own matrix.</strong> Type in the four boxes directly — the picture redraws as you type, and the determinant is
+    shown live underneath. Since <code class="inline">ad − bc = 1</code> is a constraint, editing one entry will usually break it; type any
+    <em>three</em> entries and press the matching <strong>solve for</strong> button to have the fourth computed, exactly in
+    <code class="inline">ℤ[i]</code>. Solving for <code class="inline">b</code> with <code class="inline">c = 1</code> always succeeds, since
+    then <code class="inline">b = ad − 1</code>. If no Gaussian-integer value exists — for example
+    <code class="inline">a = d = 2</code>, <code class="inline">c = 5</code>, where <code class="inline">5 ∤ 3</code> in
+    <code class="inline">ℤ[i]</code> — the tool says so rather than rounding.
+  </p>
+
+  <div class="app-grid">
+    <!-- ================= LEFT COLUMN ================= -->
+    <div>
+      <div class="panel">
+        <h3>Matrix in PSL(2,&#8450;)</h3>
+        <div class="matrix-wrap">
+          <div class="brk l"></div>
+          <div class="mgrid">
+            <input id="in-a" value="1+i" spellcheck="false" aria-label="entry a">
+            <input id="in-b" value="i"   spellcheck="false" aria-label="entry b">
+            <input id="in-c" value="1"   spellcheck="false" aria-label="entry c">
+            <input id="in-d" value="1"   spellcheck="false" aria-label="entry d">
+          </div>
+          <div class="brk r"></div>
+        </div>
+
+        <div class="detbar">
+          <span>det = ad − bc =</span> <strong id="detval">1</strong>
+          <span id="detok" class="badge ok">= 1</span>
+        </div>
+        <div class="solve-row">
+          <span class="fld" style="margin:0">make det = 1 by solving for</span>
+          <button data-solve="a">a</button>
+          <button data-solve="b">b</button>
+          <button data-solve="c">c</button>
+          <button data-solve="d">d</button>
+        </div>
+
+        <label class="fld" for="preset">Examples</label>
+        <select id="preset">
+          <option value="">— choose an example —</option>
+          <option value="2,3,1,2">f = 0 &nbsp; [[2,3],[1,2]] — reversible normal form</option>
+          <option value="2,1,1,1">f = 1 &nbsp; [[2,1],[1,1]] — reversible normal form</option>
+          <option value="1+i,i,1,1">f = i &nbsp; [[1+i,i],[1,1]] — reversible normal form</option>
+          <option value="2+i,1+i,1,1">f = 1+i &nbsp; [[2+i,1+i],[1,1]] — reversible normal form</option>
+          <option value="1,-1+i,1,i">[[1,−1+i],[1,i]] — generic, f = 1−i</option>
+          <option value="3,1,2,1">[[3,1],[2,1]] — real entries (Fuchsian, in PSL(2,ℤ))</option>
+          <option value="1,1,1,2">[[1,1],[1,2]] — real entries, f = −1</option>
+          <option value="-2+i,-i,1+i,-1">[[−2+i,−i],[1+i,−1]] — f = i, geodesic winds more</option>
+          <option value="0,-1,1,1+3i">[[0,−1],[1,1+3i]] — generic, f = −1−3i</option>
+          <option value="-4i,1+2i,-1+2i,-i">[[−4i,1+2i],[−1+2i,−i]] — appears <em>not</em> reversible</option>
+        </select>
+
+        <div class="btn-row">
+          <button class="primary" id="btn-draw">Draw</button>
+          <button id="btn-reset">Reset views</button>
+        </div>
+        <div class="err" id="err"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Invariants</h3>
+        <dl class="readout" id="readout"></dl>
+      </div>
+
+      <div class="panel">
+        <h3>Reversibility (per the paper)</h3>
+        <div id="rev-box" class="app-note" style="font-size:0.87rem"></div>
+        <div class="btn-row">
+          <button id="btn-search">Search conjugacy class for normal forms</button>
+        </div>
+        <div class="forms" id="forms"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Display</h3>
+        <div class="checks">
+          <label><input type="checkbox" id="ck-grid" checked> Boundary plane ℂ with ℤ[i] lattice</label>
+          <label><input type="checkbox" id="ck-transl"> Γ-translates of the axis (γ·axis)</label>
+          <label><input type="checkbox" id="ck-domain" checked> Fundamental domain in the H³ view</label>
+          <label><input type="checkbox" id="ck-seg" checked> Highlight fundamental segment [x₀, A·x₀]</label>
+          <label><input type="checkbox" id="ck-spin"> Slowly rotate both views</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= RIGHT COLUMN ================= -->
+    <div>
+      <div class="viewer">
+        <canvas id="cv1"></canvas>
+        <div class="vtitle">
+          <strong>Axis in hyperbolic 3-space H³</strong>
+          <span id="sub1">upper half-space model; the boundary plane is ℂ</span>
+        </div>
+        <div class="legend">
+          <i style="background:#c0392b"></i>axis of A &nbsp;
+          <i style="background:#e67e22"></i>segment [x₀, A·x₀] &nbsp;
+          <i style="background:#7f8c8d"></i>Γ-translates
+        </div>
+        <div class="vhint">drag to orbit · scroll to zoom</div>
+      </div>
+
+      <div class="viewer">
+        <canvas id="cv2"></canvas>
+        <div class="vtitle">
+          <strong>Closed geodesic in H³/PSL(2,&#8484;[i])</strong>
+          <span id="sub2">the axis folded into the Bianchi fundamental domain</span>
+        </div>
+        <div class="legend" id="leg2">
+          <i style="background:#2e86c1"></i>fundamental domain &nbsp;
+          <i style="background:linear-gradient(90deg,#1f4fd8,#d81f6a)"></i>closed geodesic (start → end)
+        </div>
+        <div class="vhint">drag to orbit · scroll to zoom</div>
+      </div>
+    </div>
+  </div>
+
+  <section style="margin-top:2rem">
+    <h2>What is being drawn</h2>
+    <p class="app-note">
+      For <code class="inline">A = [[a,b],[c,d]] ∈ SL(2,ℂ)</code> with <code class="inline">c ≠ 0</code>, the fixed points on
+      <code class="inline">∂H³</code> are the roots of <code class="inline">cz² + (d−a)z − b = 0</code>, so their sum is the invariant
+      <code class="inline">f<sub>A</sub> = (a−d)/c</code> used in the paper. The <em>axis</em> of a loxodromic <code class="inline">A</code>
+      is the geodesic joining those two roots: in the upper half-space model it is the semicircle orthogonal to <code class="inline">ℂ</code>
+      with the two fixed points as endpoints. <code class="inline">A</code> acts on its axis as a translation by
+      <code class="inline">ℓ = 2 log|λ|</code> together with a rotation by <code class="inline">θ = 2 arg λ</code>, where
+      <code class="inline">λ</code> is the eigenvalue of modulus <code class="inline">&gt; 1</code>; the complex number
+      <code class="inline">L = ℓ + iθ</code> is the complex translation length, and <code class="inline">tr A = ±2 cosh(L/2)</code>.
+    </p>
+    <p class="app-note">
+      For <code class="inline">A ∈ P = PSL(2, ℤ[i])</code>, the image of the axis in <code class="inline">H³/P</code> is a closed geodesic of
+      length <code class="inline">ℓ</code>. The lower view shows it: one fundamental segment <code class="inline">[x₀, A·x₀]</code> of the axis
+      is sampled at unit speed and each sample is pulled back into the Bianchi fundamental domain
+      <code class="inline">F = {(z,t) : |Re z| ≤ ½, 0 ≤ Im z ≤ ½, |z|² + t² ≥ 1}</code>
+      by the usual reduction (translate by a Gaussian integer, invert through the unit hemisphere by
+      <code class="inline">z ↦ −1/z</code>, repeat, then fold by <code class="inline">z ↦ −z</code>). The geodesic therefore appears as
+      several arcs inside <code class="inline">F</code>, coloured from start to end, whose endpoints match up under the face pairings.
+    </p>
+    <p class="app-note">
+      When <code class="inline">A</code> is reversible the reversing involution maps the axis to itself, reversing its orientation, so the
+      stabiliser of the axis in <code class="inline">P</code> is infinite dihedral rather than infinite cyclic. The image of the axis in the
+      orbifold is then a <em>mirror</em> geodesic: a segment run back and forth rather than an embedded circle — the three-dimensional
+      analogue of Sarnak's reciprocal geodesics through the order-two cone points of the modular surface. In the lower view this shows up as
+      arcs that retrace one another. On the faces <code class="inline">Im z = 0</code> and <code class="inline">Im z = ½</code>, where
+      <code class="inline">z ↦ −z</code> identifies <code class="inline">(x, 0)</code> with <code class="inline">(−x, 0)</code>, the two passes
+      appear instead as mirror images in the plane <code class="inline">Re z = 0</code>, since both points are legitimate representatives of the
+      same orbit. The tool therefore reports the mirror property from the algebraic test below, not from the picture.
+    </p>
+    <p class="app-note">
+      The reversibility panel implements the classification of
+      <em>Reversibility and its asymptotic counting in the Picard group</em> (D. Das, K. Gongopadhyay, A. Mukhopadhyay):
+      a loxodromic <code class="inline">g ∈ P</code> is reversible (equivalently, by Proposition 3.1, strongly reversible) precisely when it is
+      conjugate to a matrix in the special normal form <code class="inline">[[d + ck, b],[c, d]]</code>, that is when
+      <code class="inline">f<sub>g</sub> ∈ {0, 1, i, 1+i}</code> (Lemma 4.2, Theorem 1.1); each reversible loxodromic conjugacy class contains
+      exactly eight such special representatives (Lemma 5.2). The search button walks a ball in <code class="inline">P</code> in the word metric on
+      <code class="inline">S, T, T_i</code> and reports the special representatives <code class="inline">γAγ⁻¹</code> it finds.
+    </p>
+  </section>
+</main>
+<footer>© 2026 Debattam Das · Last updated July 2026</footer>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   1. Complex arithmetic
+   ========================================================================== */
+const cx    = (re, im=0) => ({re, im});
+const cadd  = (x,y) => ({re: x.re+y.re, im: x.im+y.im});
+const csub  = (x,y) => ({re: x.re-y.re, im: x.im-y.im});
+const cmul  = (x,y) => ({re: x.re*y.re - x.im*y.im, im: x.re*y.im + x.im*y.re});
+const cconj = x => ({re: x.re, im: -x.im});
+const cneg  = x => ({re: -x.re, im: -x.im});
+const cabs2 = x => x.re*x.re + x.im*x.im;
+const cabsv = x => Math.hypot(x.re, x.im);
+const cscl  = (x,s) => ({re: x.re*s, im: x.im*s});
+const cdiv  = (x,y) => { const d = cabs2(y); return {re:(x.re*y.re + x.im*y.im)/d, im:(x.im*y.re - x.re*y.im)/d}; };
+const ceq   = (x,y,e=1e-9) => Math.abs(x.re-y.re) < e && Math.abs(x.im-y.im) < e;
+const ZERO  = cx(0,0), ONE = cx(1,0);
+
+function csqrt(x){
+  const m = cabsv(x);
+  if (m === 0) return cx(0,0);
+  const re = Math.sqrt((m + x.re)/2);
+  const im = Math.sqrt(Math.max(0,(m - x.re)/2)) * (x.im < 0 ? -1 : 1);
+  return cx(re, im);
+}
+
+/* ---- parsing / formatting ---- */
+function parseComplex(str){
+  let s = String(str).trim().replace(/\s+/g,'')
+            .replace(/[Ijı]/g,'i').replace(/[−–—]/g,'-').replace(/\*/g,'');
+  if (s === '') throw new Error('empty');
+  if (!/^[-+0-9.i]+$/.test(s)) throw new Error('bad characters');
+  const terms = s.match(/[+-]?[^+-]+/g);
+  if (!terms) throw new Error('unparseable');
+  let re = 0, im = 0;
+  for (let t of terms){
+    let sign = 1;
+    if (t[0] === '+') t = t.slice(1);
+    else if (t[0] === '-'){ sign = -1; t = t.slice(1); }
+    if (t === '') throw new Error('unparseable');
+    if (t.endsWith('i')){
+      const body = t.slice(0,-1);
+      const v = (body === '' || body === '.') ? 1 : Number(body);
+      if (!isFinite(v)) throw new Error('unparseable');
+      im += sign*v;
+    } else {
+      const v = Number(t);
+      if (!isFinite(v)) throw new Error('unparseable');
+      re += sign*v;
+    }
+  }
+  return cx(re, im);
+}
+
+const MINUS = '−';
+function num(x, d){
+  if (Math.abs(x - Math.round(x)) < 1e-9) return String(Math.round(x)).replace('-', MINUS);
+  return x.toFixed(d).replace(/0+$/,'').replace(/\.$/,'').replace('-', MINUS);
+}
+function fmtC(z, d=4){
+  if (z === null) return '∞';
+  const r = z.re, i = z.im;
+  if (Math.abs(i) < 1e-12) return num(r,d);
+  const ai = Math.abs(i);
+  const istr = Math.abs(ai-1) < 1e-12 ? '' : num(ai,d);
+  if (Math.abs(r) < 1e-12) return (i < 0 ? MINUS : '') + istr + 'i';
+  return num(r,d) + (i < 0 ? ' ' + MINUS + ' ' : ' + ') + istr + 'i';
+}
+const fmtM = M => '[[' + M.map(fmtC).slice(0,2).join(', ') + '], [' + M.slice(2).map(fmtC).join(', ') + ']]';
+
+/* ==========================================================================
+   2. Matrices, Möbius actions
+   ========================================================================== */
+const mmul = (M,N) => [
+  cadd(cmul(M[0],N[0]), cmul(M[1],N[2])), cadd(cmul(M[0],N[1]), cmul(M[1],N[3])),
+  cadd(cmul(M[2],N[0]), cmul(M[3],N[2])), cadd(cmul(M[2],N[1]), cmul(M[3],N[3]))
+];
+const mdet = M => csub(cmul(M[0],M[3]), cmul(M[1],M[2]));
+const minv = M => [M[3], cneg(M[1]), cneg(M[2]), M[0]];          // valid when det = 1
+const mtr  = M => cadd(M[0], M[3]);
+
+/* Action on the boundary  C u {oo};  null represents oo. */
+function actC(M, z){
+  const [a,b,c,d] = M;
+  if (z === null) return (cabsv(c) < 1e-14) ? null : cdiv(a, c);
+  const den = cadd(cmul(c,z), d);
+  if (cabsv(den) < 1e-14) return null;
+  return cdiv(cadd(cmul(a,z), b), den);
+}
+
+/* Action on upper half-space, q = z + t j  |->  (aq+b)(cq+d)^{-1}, det = 1. */
+function actH3(M, z, t){
+  const [a,b,c,d] = M;
+  const czd = cadd(cmul(c,z), d);
+  const den = cabs2(czd) + cabs2(c)*t*t;
+  const nz  = cadd(cmul(cadd(cmul(a,z), b), cconj(czd)), cscl(cmul(a, cconj(c)), t*t));
+  return { z: cscl(nz, 1/den), t: t/den };
+}
+
+/* ==========================================================================
+   3. Classification, axis, fundamental domain reduction
+   ========================================================================== */
+function classify(M){
+  const tr = mtr(M);
+  const trIsReal = Math.abs(tr.im) < 1e-9;
+  const isId = ceq(M[0],ONE) && ceq(M[3],ONE) && ceq(M[1],ZERO) && ceq(M[2],ZERO);
+  const isNegId = ceq(M[0],cx(-1)) && ceq(M[3],cx(-1)) && ceq(M[1],ZERO) && ceq(M[2],ZERO);
+  if (isId || isNegId) return 'identity';
+  if (trIsReal && Math.abs(Math.abs(tr.re) - 2) < 1e-9) return 'parabolic';
+  if (trIsReal && Math.abs(tr.re) < 2) return 'elliptic';
+  return (trIsReal ? 'loxodromic (hyperbolic)' : 'loxodromic');
+}
+
+/* Eigenvalue of modulus > 1, fixed points, complex translation length. */
+function loxData(M){
+  const [a,b,c,d] = M;
+  const tr = mtr(M);
+  const disc = csqrt(csub(cmul(tr,tr), cx(4)));
+  let lam = cscl(cadd(tr, disc), 0.5);
+  if (cabsv(lam) < 1) lam = cscl(csub(tr, disc), 0.5);       // pick |lambda| > 1
+  const lam2 = cmul(lam, lam);
+  const ell = Math.log(cabsv(lam2));                          // translation length
+  let theta = Math.atan2(lam2.im, lam2.re);                   // holonomy rotation
+  let pPlus, pMinus;
+  if (cabsv(c) < 1e-12){
+    pPlus = null;                                             // oo is attracting when |a| > |d|
+    pMinus = ceq(a,d) ? null : cdiv(b, csub(d,a));
+    if (cabsv(a) < cabsv(d)){ const s = pPlus; pPlus = pMinus; pMinus = s; }
+  } else {
+    pPlus  = cdiv(csub(lam, d), c);                           // attracting
+    pMinus = cdiv(csub(cdiv(ONE, lam), d), c);                // repelling
+  }
+  return { lam, lam2, ell, theta, pPlus, pMinus, tr };
+}
+
+/* Möbius M with M(pMinus) = 0, M(pPlus) = oo, normalised to det = 1. */
+function straightener(pPlus, pMinus){
+  let M;
+  if (pPlus === null)        M = [ONE, cneg(pMinus), ZERO, ONE];
+  else if (pMinus === null)  M = [ZERO, cx(0,1), cx(0,1), cmul(cx(0,-1), pPlus)];
+  else {
+    const s = csqrt(csub(pMinus, pPlus));
+    const inv = cdiv(ONE, s);
+    M = [inv, cmul(cneg(pMinus), inv), inv, cmul(cneg(pPlus), inv)];
+  }
+  return M;
+}
+
+/* Full axis as a semicircle (or vertical ray) with endpoints pMinus, pPlus. */
+function axisCurve(pPlus, pMinus, N=240, tMax=3){
+  const pts = [];
+  if (pPlus === null || pMinus === null){
+    const p = pPlus === null ? pMinus : pPlus;
+    for (let k = 0; k <= N; k++){
+      const t = 1e-3 * Math.pow(tMax/1e-3, k/N);
+      pts.push([p.re, p.im, t]);
+    }
+    return pts;
+  }
+  const m = cscl(cadd(pPlus, pMinus), 0.5);
+  const half = cscl(csub(pPlus, pMinus), 0.5);
+  const r = cabsv(half);
+  if (r < 1e-12) return pts;
+  const u = cscl(half, 1/r);
+  for (let k = 0; k <= N; k++){
+    const s = Math.PI * k / N;
+    const z = cadd(m, cscl(u, r*Math.cos(s)));
+    pts.push([z.re, z.im, r*Math.sin(s)]);
+  }
+  return pts;
+}
+
+/* Reduce (z,t) into F = {|Re z| <= 1/2, 0 <= Im z <= 1/2, |z|^2 + t^2 >= 1}. */
+function reduceToF(z, t){
+  for (let k = 0; k < 300; k++){
+    let moved = false;
+    const n = cx(Math.round(z.re), Math.round(z.im));
+    if (n.re !== 0 || n.im !== 0){ z = csub(z, n); moved = true; }
+    const nrm = cabs2(z) + t*t;
+    if (nrm < 1 - 1e-12){
+      z = cscl(cneg(cconj(z)), 1/nrm);
+      t = t/nrm;
+      moved = true;
+    }
+    if (!moved) break;
+  }
+  if (z.im < 0) z = cneg(z);                                  // z |-> -z  is  [[i,0],[0,-i]] in P
+  return { z, t };
+}
+
+/* Sample [x0, A.x0] at unit speed, reduce, and split at face crossings. */
+function closedGeodesic(pPlus, pMinus, ell, N=2600){
+  const Mst  = straightener(pPlus, pMinus);
+  const Minv = minv(Mst);
+  const du = ell / N;
+  const runs = [];
+  let run = null, prev = null;
+  for (let k = 0; k <= N; k++){
+    const u = du * k;
+    const raw = actH3(Minv, ZERO, Math.exp(u));
+    const red = reduceToF(raw.z, raw.t);
+    const p = [red.z.re, red.z.im, red.t];
+    if (prev){
+      const step = Math.hypot(p[0]-prev[0], p[1]-prev[1], p[2]-prev[2]);
+      const expect = du * Math.max(prev[2], p[2]);            // reduction is an isometry
+      if (step > 4*expect + 1e-9){ runs.push(run); run = null; }
+    }
+    if (!run) run = { pts: [], us: [] };
+    run.pts.push(p); run.us.push(u/ell);
+    prev = p;
+  }
+  if (run && run.pts.length > 1) runs.push(run);
+  return runs.filter(r => r.pts.length > 1);
+}
+
+/* ==========================================================================
+   4. The Picard group: generators, ball, special normal forms
+   ========================================================================== */
+const GEN_S  = [ZERO, cx(-1), ONE, ZERO];
+const GEN_T  = [ONE, ONE, ZERO, ONE];
+const GEN_Ti = [ONE, cx(0,1), ZERO, ONE];
+const GENS = [
+  GEN_S, [ZERO, ONE, cx(-1), ZERO],
+  GEN_T, [ONE, cx(-1), ZERO, ONE],
+  GEN_Ti, [ONE, cx(0,-1), ZERO, ONE],
+  [cx(0,1), ZERO, ZERO, cx(0,-1)]
+];
+const SPECIAL_F = [cx(0,0), cx(1,0), cx(0,1), cx(1,1)];       // {0, 1, i, 1+i}
+
+const isGaussian = z => Math.abs(z.re - Math.round(z.re)) < 1e-9 && Math.abs(z.im - Math.round(z.im)) < 1e-9;
+const inPicard = M => M.every(isGaussian) && ceq(mdet(M), ONE);
+
+/* Canonical key for M mod +-1. */
+function mkey(M){
+  const e = [];
+  for (const z of M) e.push(Math.round(z.re), Math.round(z.im));
+  let sgn = 1;
+  for (const v of e){ if (v !== 0){ sgn = v > 0 ? 1 : -1; break; } }
+  return e.map(v => v*sgn).join(',');
+}
+
+/* f_A = (a-d)/c, exactly, as a Gaussian integer when it is one. */
+function fInvariant(M){
+  const [a,b,c,d] = M;
+  if (cabsv(c) < 1e-12) return null;
+  return cdiv(csub(a,d), c);
+}
+/* A is in special normal form iff a − d = k·c for some k ∈ {0, 1, i, 1+i}.
+   For Gaussian-integer entries this is tested exactly, with no division. */
+function isSpecialForm(M){
+  const [a,b,c,d] = M;
+  if (cabsv(c) < 1e-12) return false;
+  const ad = csub(a, d);
+  if (M.every(isGaussian)){
+    return SPECIAL_F.some(k => {
+      const kc = cmul(k, c);
+      return Math.round(ad.re) === Math.round(kc.re) && Math.round(ad.im) === Math.round(kc.im);
+    });
+  }
+  return SPECIAL_F.some(k => ceq(ad, cmul(k, c), 1e-9));
+}
+
+/* Walk a ball in P and collect distinct special representatives of the class. */
+function findSpecialForms(A, budget=45000, want=8){
+  const found = [], seen = new Set();
+  const start = [ONE, ZERO, ZERO, ONE];
+  const queue = [start];
+  const visited = new Set([mkey(start)]);
+  let head = 0;
+  const CAP = 1e7;
+  while (head < queue.length && queue.length < budget && found.length < want){
+    const g = queue[head++];
+    const B = mmul(mmul(g, A), minv(g));
+    if (isSpecialForm(B)){
+      const k = mkey(B);
+      if (!seen.has(k)){ seen.add(k); found.push(B); }
+    }
+    for (const s of GENS){
+      const h = mmul(g, s);
+      if (h.some(z => Math.abs(z.re) > CAP || Math.abs(z.im) > CAP)) continue;
+      const k = mkey(h);
+      if (!visited.has(k)){ visited.add(k); queue.push(h); }
+    }
+  }
+  return { found, explored: head, exhausted: head >= queue.length };
+}
+
+/* ==========================================================================
+   5. A small 3D line renderer on canvas 2D
+   ========================================================================== */
+const NEAR = 0.05;
+const sub3 = (a,b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]];
+const dot3 = (a,b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+const cross3 = (a,b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+function norm3(a){ const n = Math.hypot(a[0],a[1],a[2]) || 1; return [a[0]/n, a[1]/n, a[2]/n]; }
+
+class View3D {
+  constructor(canvas){
+    this.cv = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.items = [];
+    this.tanHalf = 0.46;
+    this.home = { az: -1.05, el: 0.42, dist: 4, target: [0,0,0.6] };
+    this.applyHome();
+    this._bind();
+  }
+  applyHome(){
+    this.az = this.home.az; this.el = this.home.el;
+    this.dist = this.home.dist; this.target = this.home.target.slice();
+  }
+  _bind(){
+    let dragging = false, lx = 0, ly = 0;
+    const down = e => { dragging = true; lx = e.clientX; ly = e.clientY; this.cv.setPointerCapture(e.pointerId); };
+    const move = e => {
+      if (!dragging) return;
+      this.az -= (e.clientX - lx) * 0.008;
+      this.el = Math.max(-1.45, Math.min(1.45, this.el + (e.clientY - ly) * 0.008));
+      lx = e.clientX; ly = e.clientY;
+      this.render();
+    };
+    const up = e => { dragging = false; try { this.cv.releasePointerCapture(e.pointerId); } catch(_){} };
+    this.cv.addEventListener('pointerdown', down);
+    this.cv.addEventListener('pointermove', move);
+    this.cv.addEventListener('pointerup', up);
+    this.cv.addEventListener('pointercancel', up);
+    this.cv.addEventListener('wheel', e => {
+      e.preventDefault();
+      this.dist = Math.max(0.25, Math.min(400, this.dist * Math.exp(e.deltaY * 0.0012)));
+      this.render();
+    }, { passive: false });
+  }
+  resize(){
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = this.cv.clientWidth, h = this.cv.clientHeight;
+    if (!w || !h) return false;
+    if (this.cv.width !== Math.round(w*dpr) || this.cv.height !== Math.round(h*dpr)){
+      this.cv.width = Math.round(w*dpr); this.cv.height = Math.round(h*dpr);
+    }
+    this.w = w; this.h = h; this.dpr = dpr;
+    return true;
+  }
+  clear(){ this.items = []; }
+  line(pts, o){ if (pts && pts.length > 1) this.items.push(Object.assign({ kind:'line', pts, layer:2, color:'#888', width:1 }, o)); }
+  grad(pts, us, o){ if (pts && pts.length > 1) this.items.push(Object.assign({ kind:'grad', pts, us, layer:3, width:2.4 }, o)); }
+  dot(p, o){ this.items.push(Object.assign({ kind:'dot', p, layer:4, color:'#333', r:3 }, o)); }
+  text(p, s, o){ this.items.push(Object.assign({ kind:'text', p, s, layer:5, color:'#5a6a78', dx:6, dy:-6 }, o)); }
+
+  fit(pts, pad = 1.3){
+    if (!pts.length) return;
+    let lo = [ Infinity, Infinity, Infinity], hi = [-Infinity,-Infinity,-Infinity];
+    for (const p of pts) for (let i = 0; i < 3; i++){ lo[i] = Math.min(lo[i], p[i]); hi[i] = Math.max(hi[i], p[i]); }
+    const ctr = [(lo[0]+hi[0])/2, (lo[1]+hi[1])/2, (lo[2]+hi[2])/2];
+    let r = 0;
+    for (const p of pts) r = Math.max(r, Math.hypot(p[0]-ctr[0], p[1]-ctr[1], p[2]-ctr[2]));
+    r = Math.max(r, 0.35);
+    this.home = { az: this.home.az, el: this.home.el, dist: r/this.tanHalf*pad, target: ctr };
+    this.az = this.home.az; this.el = this.home.el;
+    this.dist = this.home.dist; this.target = ctr.slice();
+  }
+  _cam(){
+    const ce = Math.cos(this.el), se = Math.sin(this.el);
+    const ca = Math.cos(this.az), sa = Math.sin(this.az);
+    const dir = [ce*ca, ce*sa, se];
+    const eye = [this.target[0] + this.dist*dir[0], this.target[1] + this.dist*dir[1], this.target[2] + this.dist*dir[2]];
+    const f = [-dir[0], -dir[1], -dir[2]];
+    let r = cross3(f, [0,0,1]);
+    if (Math.hypot(r[0],r[1],r[2]) < 1e-6) r = [1,0,0];
+    r = norm3(r);
+    const u = norm3(cross3(r, f));
+    return { eye, f, r, u, focal: (this.h/2)/this.tanHalf };
+  }
+  _view(p, cam){
+    const d = sub3(p, cam.eye);
+    return { vx: dot3(d, cam.r), vy: dot3(d, cam.u), vz: dot3(d, cam.f) };
+  }
+  _screen(v, cam){
+    return [ this.w/2 + cam.focal*v.vx/v.vz, this.h/2 - cam.focal*v.vy/v.vz ];
+  }
+  /* split a polyline into runs of screen points in front of the near plane */
+  _runs(pts, cam){
+    const V = pts.map(p => this._view(p, cam));
+    const runs = []; let cur = null;
+    const lerp = (A,B,tt) => ({ vx: A.vx + (B.vx-A.vx)*tt, vy: A.vy + (B.vy-A.vy)*tt, vz: NEAR });
+    for (let i = 0; i < V.length; i++){
+      const a = V[i];
+      if (a.vz > NEAR){
+        if (!cur){
+          cur = { s: [], idx: [], depth: 0 };
+          if (i > 0){
+            const b = V[i-1], tt = (NEAR - b.vz)/(a.vz - b.vz);
+            cur.s.push(this._screen(lerp(b,a,tt), cam)); cur.idx.push(i-1);
+          }
+        }
+        cur.s.push(this._screen(a, cam)); cur.idx.push(i); cur.depth += a.vz;
+      } else if (cur){
+        const b = V[i-1], tt = (NEAR - b.vz)/(a.vz - b.vz);
+        cur.s.push(this._screen(lerp(b,a,tt), cam)); cur.idx.push(i);
+        cur.depth /= cur.s.length; runs.push(cur); cur = null;
+      }
+    }
+    if (cur){ cur.depth /= Math.max(1, cur.s.length); runs.push(cur); }
+    return runs.filter(r => r.s.length > 1);
+  }
+  render(){
+    if (!this.resize()) return;
+    const ctx = this.ctx, cam = this._cam();
+    ctx.save();
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.clearRect(0, 0, this.w, this.h);
+    ctx.fillStyle = '#f7f9fb';
+    ctx.fillRect(0, 0, this.w, this.h);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+
+    const drawable = [];
+    for (const it of this.items){
+      if (it.kind === 'line' || it.kind === 'grad'){
+        for (const run of this._runs(it.pts, cam)) drawable.push({ it, run, depth: run.depth });
+      } else {
+        const v = this._view(it.p, cam);
+        if (v.vz > NEAR) drawable.push({ it, s: this._screen(v, cam), depth: v.vz });
+      }
+    }
+    drawable.sort((A,B) => (A.it.layer - B.it.layer) || (B.depth - A.depth));
+
+    for (const D of drawable){
+      const it = D.it;
+      if (it.kind === 'line'){
+        ctx.beginPath();
+        const s = D.run.s;
+        ctx.moveTo(s[0][0], s[0][1]);
+        for (let i = 1; i < s.length; i++) ctx.lineTo(s[i][0], s[i][1]);
+        ctx.strokeStyle = it.color; ctx.lineWidth = it.width;
+        ctx.globalAlpha = it.alpha != null ? it.alpha : 1;
+        ctx.setLineDash(it.dash || []);
+        ctx.stroke();
+        ctx.setLineDash([]); ctx.globalAlpha = 1;
+      } else if (it.kind === 'grad'){
+        const s = D.run.s, idx = D.run.idx;
+        ctx.lineWidth = it.width; ctx.globalAlpha = 1;
+        for (let i = 1; i < s.length; i++){
+          const u = it.us[Math.min(idx[i], it.us.length-1)];
+          ctx.beginPath();
+          ctx.moveTo(s[i-1][0], s[i-1][1]);
+          ctx.lineTo(s[i][0], s[i][1]);
+          ctx.strokeStyle = geoColor(u);
+          ctx.stroke();
+        }
+      } else if (it.kind === 'dot'){
+        ctx.beginPath();
+        ctx.arc(D.s[0], D.s[1], it.r, 0, 2*Math.PI);
+        ctx.fillStyle = it.color; ctx.fill();
+        if (it.ring){ ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.4; ctx.stroke(); }
+      } else if (it.kind === 'text'){
+        ctx.font = (it.font || '12px "Helvetica Neue", Arial, sans-serif');
+        ctx.fillStyle = it.color;
+        ctx.textAlign = it.align || 'left';
+        ctx.fillText(it.s, D.s[0] + it.dx, D.s[1] + it.dy);
+      }
+    }
+    ctx.restore();
+  }
+}
+
+/* start -> end colour ramp for the closed geodesic */
+function geoColor(u){
+  const h = 226 + (334 - 226)*Math.max(0, Math.min(1, u));
+  return `hsl(${h.toFixed(1)}, 72%, 47%)`;
+}
+
+/* ==========================================================================
+   6. Scene construction
+   ========================================================================== */
+const V1 = new View3D(document.getElementById('cv1'));
+const V2 = new View3D(document.getElementById('cv2'));
+V2.home.el = 0.55; V2.applyHome();
+
+function addBoundaryGrid(view, lo, hi){
+  const x0 = Math.floor(lo[0]) - 1, x1 = Math.ceil(hi[0]) + 1;
+  const y0 = Math.floor(lo[1]) - 1, y1 = Math.ceil(hi[1]) + 1;
+  const span = Math.max(x1-x0, y1-y0);
+  const step = span > 24 ? Math.ceil(span/24) : 1;
+  for (let x = x0; x <= x1; x += step)
+    view.line([[x, y0, 0], [x, y1, 0]], { layer:0, color:'#d6dee6', width:1 });
+  for (let y = y0; y <= y1; y += step)
+    view.line([[x0, y, 0], [x1, y, 0]], { layer:0, color:'#d6dee6', width:1 });
+  view.line([[x0,0,0],[x1,0,0]], { layer:0, color:'#aab8c4', width:1.6 });   // real axis
+  view.line([[0,y0,0],[0,y1,0]], { layer:0, color:'#aab8c4', width:1.6 });   // imaginary axis
+  if (span <= 26){
+    for (let x = x0; x <= x1; x += step)
+      for (let y = y0; y <= y1; y += step)
+        view.dot([x,y,0], { layer:1, color:'#b3c1cd', r:1.7 });
+  }
+  view.dot([0,0,0], { layer:1, color:'#5a6a78', r:3, ring:true });
+  view.text([0,0,0], '0', { layer:5, dx:5, dy:13 });
+  if (x1 >= 1 && y1 >= 0){ view.text([1,0,0], '1', { layer:5, dx:5, dy:13 }); }
+  if (y1 >= 1){ view.text([0,1,0], 'i', { layer:5, dx:5, dy:13 }); }
+}
+
+/* Bianchi fundamental domain F for PSL(2,Z[i]) */
+function addFundamentalDomain(view, tTop, opts){
+  const col = (opts && opts.color) || '#2e86c1';
+  const wall = (opts && opts.wallAlpha) || 0.55;
+  const layer = (opts && opts.layer) != null ? opts.layer : 1;
+  const floorT = (x,y) => Math.sqrt(Math.max(0, 1 - x*x - y*y));
+  const NX = 9, NY = 5, NS = 26;
+
+  for (let i = 0; i <= NX; i++){
+    const x = -0.5 + i/NX;
+    const c = [];
+    for (let k = 0; k <= NS; k++){ const y = 0.5*k/NS; c.push([x, y, floorT(x,y)]); }
+    const edge = (i === 0 || i === NX);
+    view.line(c, { layer, color: col, width: edge ? 1.8 : 0.8, alpha: edge ? 0.9 : 0.3 });
+  }
+  for (let j = 0; j <= NY; j++){
+    const y = 0.5*j/NY;
+    const c = [];
+    for (let k = 0; k <= NS; k++){ const x = -0.5 + k/NS; c.push([x, y, floorT(x,y)]); }
+    const edge = (j === 0 || j === NY);
+    view.line(c, { layer, color: col, width: edge ? 1.8 : 0.8, alpha: edge ? 0.9 : 0.3 });
+  }
+  const corners = [[-0.5,0],[0.5,0],[0.5,0.5],[-0.5,0.5]];
+  for (const [x,y] of corners)
+    view.line([[x, y, floorT(x,y)], [x, y, tTop]], { layer, color: col, width:1.5, alpha: wall });
+  const ring = [];
+  for (const [x,y] of corners) ring.push([x, y, tTop]);
+  ring.push(ring[0]);
+  view.line(ring, { layer, color: col, width:1.2, alpha:0.45, dash:[5,4] });
+  if (opts && opts.base){
+    for (const [x,y] of corners) view.line([[x,y,0],[x,y,floorT(x,y)]], { layer, color: col, width:0.9, alpha:0.25, dash:[3,3] });
+    const base = corners.map(([x,y]) => [x,y,0]); base.push(base[0]);
+    view.line(base, { layer, color: col, width:1, alpha:0.35 });
+  }
+}
+
+/* corner points of F used to frame the quotient view */
+function domainFrame(tTop){
+  const floorT = (x,y) => Math.sqrt(Math.max(0, 1 - x*x - y*y));
+  const pts = [[0,0,1]];
+  for (const [x,y] of [[-0.5,0],[0.5,0],[0.5,0.5],[-0.5,0.5]]){
+    pts.push([x, y, floorT(x,y)]);
+    pts.push([x, y, tTop]);
+  }
+  return pts;
+}
+
+/* ==========================================================================
+   7. UI
+   ========================================================================== */
+const $ = id => document.getElementById(id);
+const els = { a:$('in-a'), b:$('in-b'), c:$('in-c'), d:$('in-d') };
+const errEl = $('err'), readEl = $('readout'), revEl = $('rev-box'), formsEl = $('forms');
+let STATE = null;
+
+function row(dt, dd){ return `<div><dt>${dt}</dt><dd>${dd}</dd></div>`; }
+
+/* Parse the four boxes. Throws only if an entry is unreadable — the determinant
+   is checked separately so that a half-finished matrix still gives feedback. */
+function readEntries(){
+  const M = [];
+  let ok = true;
+  for (const k of ['a','b','c','d']){
+    try { M.push(parseComplex(els[k].value)); els[k].classList.remove('bad'); }
+    catch(_){ els[k].classList.add('bad'); ok = false; M.push(ZERO); }
+  }
+  if (!ok) throw new Error('Could not read every entry. Use forms like 2, i, -i, 1+i, 3-2i, 0.5+1.25i.');
+  return M;
+}
+
+function readMatrix(){
+  const M = readEntries();
+  const det = mdet(M);
+  if (!ceq(det, ONE, 1e-7))
+    throw new Error('det = ' + fmtC(det) + ', not 1. Type three entries and press a “solve for” button to get the fourth.');
+  return M;
+}
+
+/* Division that stays inside ℤ[i] when both arguments are Gaussian integers.
+   Returns null when the quotient is not a Gaussian integer. */
+function exactDiv(z, w){
+  if (cabsv(w) < 1e-12) return null;
+  const q = cdiv(z, w);
+  if (isGaussian(z) && isGaussian(w)){
+    const n = cx(Math.round(q.re), Math.round(q.im));
+    return ceq(cmul(n, w), z, 1e-6) ? n : null;
+  }
+  return q;
+}
+
+/* Solve ad − bc = 1 for the requested entry, leaving the other three alone. */
+function solveFor(which){
+  let M;
+  try { M = readEntries(); }
+  catch (e){ errEl.textContent = e.message; return; }
+  const [a,b,c,d] = M;
+  const bc1 = cadd(ONE, cmul(b,c));      // 1 + bc  =  ad
+  const ad1 = csub(cmul(a,d), ONE);      // ad − 1  =  bc
+  const spec = {
+    a: { val: exactDiv(bc1, d), div: d, need: 'd ≠ 0 and d must divide 1 + bc' },
+    d: { val: exactDiv(bc1, a), div: a, need: 'a ≠ 0 and a must divide 1 + bc' },
+    b: { val: exactDiv(ad1, c), div: c, need: 'c ≠ 0 and c must divide ad − 1' },
+    c: { val: exactDiv(ad1, b), div: b, need: 'b ≠ 0 and b must divide ad − 1' }
+  }[which];
+
+  if (cabsv(spec.div) < 1e-12){
+    errEl.textContent = 'Cannot solve for ' + which + ': ' + spec.need + '.';
+    return;
+  }
+  if (spec.val === null){
+    errEl.textContent = 'No Gaussian-integer value of ' + which + ' gives det = 1 here (' + spec.need +
+                        '). Adjust another entry — taking c = 1 always works.';
+    return;
+  }
+  els[which].value = fmtC(spec.val).replace(/−/g, '-').replace(/ /g, '');
+  errEl.textContent = '';
+  update();
+}
+
+/* Live determinant readout, so a half-edited matrix still says something useful. */
+function refreshDet(){
+  let M;
+  try { M = readEntries(); }
+  catch(_){ $('detval').textContent = '—'; $('detok').className = 'badge no'; $('detok').textContent = 'unreadable'; return false; }
+  const det = mdet(M);
+  $('detval').textContent = fmtC(det);
+  const good = ceq(det, ONE, 1e-7);
+  $('detok').className = 'badge ' + (good ? 'ok' : 'no');
+  $('detok').textContent = good ? '= 1' : '≠ 1';
+  return good;
+}
+
+function update(){
+  refreshDet();
+  let M;
+  try { M = readMatrix(); }
+  catch (e){ errEl.textContent = e.message; return; }
+  errEl.textContent = '';
+
+  const type = classify(M);
+  const picard = inPicard(M);
+  const f = fInvariant(M);
+  const special = isSpecialForm(M);
+
+  let html = '';
+  html += row('type', type);
+  html += row('trace', '±' + fmtC(mtr(M)));
+  html += row('in P = PSL(2,ℤ[i])?', picard ? '<span class="badge ok">yes</span>' : '<span class="badge no">no</span> (entries not in ℤ[i])');
+
+  if (!type.startsWith('loxodromic')){
+    html += row('f<sub>A</sub> = (a−d)/c', f === null ? 'undefined (c = 0)' : fmtC(f));
+    readEl.innerHTML = html;
+    revEl.innerHTML = type === 'parabolic'
+      ? 'Parabolic elements of P are always reversible (Theorem 1.1(2)): up to conjugacy z ↦ z + k is the product of the involutions z ↦ −z and z ↦ −z + k. They have no axis, so nothing is drawn.'
+      : (type === 'elliptic'
+        ? 'Elliptic. Among elliptic elements only the involutions are reversible (Theorem 1.1(1)); an elliptic element fixes a point of H³ and has no translation axis, so nothing is drawn.'
+        : 'The identity. No axis.');
+    formsEl.innerHTML = '';
+    STATE = null;
+    V1.clear(); V2.clear(); V1.render(); V2.render();
+    $('sub1').textContent = 'no axis: the element is ' + type;
+    $('sub2').textContent = 'no closed geodesic';
+    return;
+  }
+
+  const L = loxData(M);
+  STATE = { M, L, picard, reversible: special ? true : null };
+
+  html += row('eigenvalue λ (|λ|>1)', fmtC(L.lam));
+  html += row('λ² = e<sup>L</sup>', fmtC(L.lam2));
+  html += row('translation length ℓ', L.ell.toFixed(6));
+  html += row('holonomy θ', L.theta.toFixed(6) + ' rad  (' + (L.theta*180/Math.PI).toFixed(3) + '°)');
+  html += row('complex length L', L.ell.toFixed(5) + (L.theta < 0 ? ' − ' : ' + ') + Math.abs(L.theta).toFixed(5) + 'i');
+  html += row('attracting fixed pt', fmtC(L.pPlus));
+  html += row('repelling fixed pt', fmtC(L.pMinus));
+  html += row('f<sub>A</sub> = (a−d)/c', f === null ? '— (c = 0)' : fmtC(f));
+  readEl.innerHTML = html;
+
+  /* reversibility panel */
+  if (!picard){
+    revEl.innerHTML = 'The entries are not Gaussian integers, so this element is not in the Picard group P = PSL(2,ℤ[i]) and the classification of the paper does not apply. The axis is still drawn; the quotient view is disabled.';
+    formsEl.innerHTML = '';
+  } else if (special){
+    revEl.innerHTML = 'f<sub>A</sub> = <strong>' + fmtC(f) + '</strong> ∈ {0, 1, i, 1+i}, so A is already in the special normal form [[d + ck, b],[c, d]] of Lemma 4.2: <span class="badge ok">reversible</span>. It is strongly reversible too (Proposition 3.1), reversed by the involution u with that value of k. By Lemma 5.2 its conjugacy class contains exactly eight such special representatives.';
+    formsEl.innerHTML = '';
+  } else {
+    revEl.innerHTML = 'f<sub>A</sub> = <strong>' + fmtC(f) + '</strong> ∉ {0, 1, i, 1+i}, so this particular matrix is not in special normal form. Reversibility is a property of the conjugacy class, so run the search below: A is reversible exactly when some conjugate γAγ⁻¹ has f ∈ {0, 1, i, 1+i}.';
+    formsEl.innerHTML = '';
+  }
+  $('btn-search').disabled = !picard;
+
+  draw();
+}
+
+function draw(){
+  V1.clear(); V2.clear();
+  if (!STATE){ V1.render(); V2.render(); return; }
+  const { M, L, picard } = STATE;
+
+  /* ---------- view 1: the axis in H^3 ---------- */
+  const axis = axisCurve(L.pPlus, L.pMinus, 320);
+  const fitPts = axis.slice();
+
+  const Mst = straightener(L.pPlus, L.pMinus), Minv = minv(Mst);
+  const segPts = [];
+  const NS = 200;
+  for (let k = 0; k <= NS; k++){
+    const p = actH3(Minv, ZERO, Math.exp(L.ell * k/NS));
+    segPts.push([p.z.re, p.z.im, p.t]);
+  }
+
+  let lo = [Infinity,Infinity,0], hi = [-Infinity,-Infinity,-Infinity];
+  for (const p of fitPts){
+    lo[0] = Math.min(lo[0], p[0]); hi[0] = Math.max(hi[0], p[0]);
+    lo[1] = Math.min(lo[1], p[1]); hi[1] = Math.max(hi[1], p[1]);
+    hi[2] = Math.max(hi[2], p[2]);
+  }
+  if ($('ck-grid').checked) addBoundaryGrid(V1, lo, hi);
+
+  if ($('ck-domain').checked && picard)
+    addFundamentalDomain(V1, Math.max(1.6, hi[2]*0.9), { color:'#2e86c1', layer:1, wallAlpha:0.4, base:true });
+
+  if ($('ck-transl').checked && picard){
+    const seen = new Set(), queue = [[ONE,ZERO,ZERO,ONE]];
+    const visited = new Set([mkey(queue[0])]);
+    let head = 0, drawn = 0;
+    while (head < queue.length && drawn < 60){
+      const g = queue[head++];
+      const q1 = actC(g, L.pPlus), q2 = actC(g, L.pMinus);
+      if (!(q1 === null && q2 === null)){
+        const key = fmtC(q1,6) + '|' + fmtC(q2,6);
+        if (!seen.has(key)){
+          seen.add(key);
+          const cvv = axisCurve(q1, q2, 90);
+          if (cvv.length) { V1.line(cvv, { layer:2, color:'#7f8c8d', width:1, alpha:0.5 }); drawn++; }
+        }
+      }
+      for (const s of GENS){
+        const h = mmul(g, s);
+        if (h.some(z => Math.abs(z.re) > 1e4 || Math.abs(z.im) > 1e4)) continue;
+        const k = mkey(h);
+        if (!visited.has(k) && queue.length < 400){ visited.add(k); queue.push(h); }
+      }
+    }
+  }
+
+  V1.line(axis, { layer:3, color:'#c0392b', width:2.6 });
+  if ($('ck-seg').checked){
+    V1.line(segPts, { layer:3, color:'#e67e22', width:4.6, alpha:0.95 });
+    V1.dot(segPts[0], { layer:4, color:'#e67e22', r:4.5, ring:true });
+    V1.dot(segPts[NS], { layer:4, color:'#d35400', r:4.5, ring:true });
+    V1.text(segPts[0], 'x₀', { layer:5, color:'#b9600f', font:'bold 12px "Helvetica Neue", Arial, sans-serif' });
+    V1.text(segPts[NS], 'A·x₀', { layer:5, color:'#b9600f', dx:8, dy:-15, font:'bold 12px "Helvetica Neue", Arial, sans-serif' });
+  }
+  if (L.pPlus){
+    V1.dot([L.pPlus.re, L.pPlus.im, 0], { layer:4, color:'#c0392b', r:5, ring:true });
+    V1.text([L.pPlus.re, L.pPlus.im, 0], 'p₊ = ' + fmtC(L.pPlus,3), { layer:5, color:'#8c2d1f', dx:8, dy:-9 });
+  }
+  if (L.pMinus){
+    V1.dot([L.pMinus.re, L.pMinus.im, 0], { layer:4, color:'#8e44ad', r:5, ring:true });
+    V1.text([L.pMinus.re, L.pMinus.im, 0], 'p₋ = ' + fmtC(L.pMinus,3), { layer:5, color:'#6c3483', dx:8, dy:-9 });
+  }
+  V1.fit(fitPts.concat(segPts, [[0,0,0]]), 1.35);
+  V1.render();
+  $('sub1').textContent = 'semicircle from p₋ to p₊ orthogonal to ℂ · translation length ℓ = ' + L.ell.toFixed(4);
+
+  /* ---------- view 2: the closed geodesic in H^3 / P ---------- */
+  if (!picard){
+    $('sub2').textContent = 'unavailable: the matrix is not in PSL(2,ℤ[i])';
+    $('leg2').style.display = 'none';
+    V2.render();
+    return;
+  }
+  $('leg2').style.display = '';
+
+  const runs = closedGeodesic(L.pPlus, L.pMinus, L.ell, 3000);
+  let tMax = 1.02;
+  for (const r of runs) for (const p of r.pts) tMax = Math.max(tMax, p[2]);
+  const tTop = Math.min(tMax*1.10 + 0.06, 200);
+  addFundamentalDomain(V2, tTop, { color:'#2e86c1', layer:1, wallAlpha:0.6, base:false });
+
+  const all = [];
+  for (let i = 0; i < runs.length; i++){
+    const r = runs[i];
+    V2.grad(r.pts, r.us, { layer:3, width:3.2 });
+    for (const p of r.pts) all.push(p);
+    /* where the geodesic leaves and re-enters F, through paired faces */
+    if (i > 0) V2.dot(r.pts[0], { layer:4, color: geoColor(r.us[0]), r:3 });
+    if (i < runs.length-1) V2.dot(r.pts[r.pts.length-1], { layer:4, color: geoColor(r.us[r.us.length-1]), r:3 });
+  }
+  if (runs.length){
+    const last = runs[runs.length-1];
+    V2.dot(runs[0].pts[0], { layer:4, color: geoColor(0), r:5, ring:true });
+    V2.dot(last.pts[last.pts.length-1], { layer:4, color: geoColor(1), r:5, ring:true });
+  }
+  V2.fit(all.concat(domainFrame(tTop)), 1.18);
+  V2.render();
+  let note = '';
+  if (STATE.reversible === true)
+    note = ' · mirror (reciprocal) geodesic: the axis is stabilised by an involution';
+  else if (STATE.reversible === false)
+    note = ' · ordinary closed geodesic: no reversing involution found';
+  $('sub2').textContent = 'length ' + L.ell.toFixed(5) + ' · holonomy ' + (L.theta*180/Math.PI).toFixed(2) +
+                          '° · ' + runs.length + ' arc' + (runs.length === 1 ? '' : 's') + ' inside F' + note;
+}
+
+/* ---- reversibility search ---- */
+$('btn-search').addEventListener('click', () => {
+  if (!STATE || !STATE.picard) return;
+  const btn = $('btn-search');
+  btn.disabled = true; btn.textContent = 'searching…';
+  formsEl.innerHTML = '<div class="app-note" style="font-size:0.85rem">walking a ball in P…</div>';
+  setTimeout(() => {
+    const res = findSpecialForms(STATE.M);
+    STATE.reversible = res.found.length ? true : false;
+    let out = '';
+    if (res.found.length){
+      out += '<div class="app-note" style="font-size:0.85rem;margin-bottom:0.4rem">' +
+             '<span class="badge ok">reversible</span> — found ' + res.found.length +
+             ' special representative' + (res.found.length === 1 ? '' : 's') +
+             ' γAγ⁻¹ with f ∈ {0, 1, i, 1+i} (Lemma 5.2: there are exactly 8). Explored ' +
+             res.explored.toLocaleString() + ' group elements.</div>';
+      out += '<table>';
+      for (const B of res.found)
+        out += '<tr><td class="k">f = ' + fmtC(fInvariant(B)) + '</td><td>' + fmtM(B) + '</td></tr>';
+      out += '</table>';
+    } else {
+      out = '<div class="app-note" style="font-size:0.85rem"><span class="badge mid">inconclusive</span> ' +
+            'no conjugate with f ∈ {0, 1, i, 1+i} was found within ' + res.explored.toLocaleString() +
+            ' group elements. The search covers a ball in the word metric only, so this is evidence that A is not reversible, not a proof.</div>';
+    }
+    formsEl.innerHTML = out;
+    draw();
+    btn.disabled = false; btn.textContent = 'Search conjugacy class for normal forms';
+  }, 30);
+});
+
+/* ---- wiring ---- */
+$('btn-draw').addEventListener('click', update);
+for (const btn of document.querySelectorAll('[data-solve]'))
+  btn.addEventListener('click', () => solveFor(btn.dataset.solve));
+
+let typeTimer = null;
+for (const k of ['a','b','c','d']){
+  els[k].addEventListener('keydown', e => { if (e.key === 'Enter') update(); });
+  els[k].addEventListener('input', () => {
+    const good = refreshDet();
+    clearTimeout(typeTimer);
+    /* redraw as soon as the matrix is valid again; while det ≠ 1 just say so,
+       without wiping the picture of the last valid matrix */
+    typeTimer = setTimeout(() => {
+      if (good) update();
+      else errEl.textContent = 'det ≠ 1 — finish editing, or press a “solve for” button.';
+    }, 260);
+  });
+}
+$('preset').addEventListener('change', e => {
+  if (!e.target.value) return;
+  const parts = e.target.value.split(',');
+  ['a','b','c','d'].forEach((k,i) => { els[k].value = parts[i]; });
+  update();
+});
+$('btn-reset').addEventListener('click', () => { V1.applyHome(); V2.applyHome(); V1.render(); V2.render(); });
+for (const id of ['ck-grid','ck-transl','ck-domain','ck-seg'])
+  $(id).addEventListener('change', draw);
+
+let spinId = null;
+$('ck-spin').addEventListener('change', e => {
+  if (e.target.checked){
+    const tick = () => { V1.az += 0.0035; V2.az += 0.0035; V1.render(); V2.render(); spinId = requestAnimationFrame(tick); };
+    spinId = requestAnimationFrame(tick);
+  } else if (spinId != null){ cancelAnimationFrame(spinId); spinId = null; }
+});
+
+window.addEventListener('resize', () => { V1.render(); V2.render(); });
+update();
+</script>
+</body>
+</html>

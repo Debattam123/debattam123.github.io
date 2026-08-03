@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Interactive tools written alongside my research in hyperbolic geometry, Kleinian groups and low-dimensional topology. Each runs entirely in the browser.">
+<title>Tools for Research — Debattam Das</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.lede { color: var(--muted); font-size: 0.95rem; }
+
+.tool-list { margin-top: 1.3rem; }
+
+.tool-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+  padding: 1.05rem 1.15rem;
+}
+.tool-card + .tool-card { margin-top: 1rem; }
+
+.tool-card h3 { font-size: 1.05rem; font-weight: normal; margin: 0 0 0.45rem; }
+.tool-card h3 a { color: var(--accent); text-decoration: none; }
+.tool-card h3 a:hover { text-decoration: underline; }
+
+.tool-card p { margin: 0 0 0.6rem; font-size: 0.92rem; }
+.tool-card p:last-child { margin-bottom: 0; }
+
+.tool-card code {
+  font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.9em;
+  background: #eef2f6; padding: 0 3px; border-radius: 3px;
+}
+
+.tool-meta {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.79rem; color: var(--muted);
+}
+.tool-meta span + span::before { content: '·'; margin: 0 0.45rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1><a href="index.html">Debattam Das</a></h1>
+  <p class="tagline">Postdoctoral Fellow · Department of Mathematics &amp; Statistics · IIT Kanpur</p>
+</header>
+<nav>
+  <a href="index.html">Home</a>
+  <a href="research.html">Research</a>
+  <a href="publications.html">Publications</a>
+  <a href="talks.html">Talks</a>
+  <a href="teaching.html">Teaching</a>
+  <a href="tools.html" class="active">Research Tools</a>
+  <a href="cv.pdf">CV</a>
+</nav>
+<main>
+  <h2>Tools for Research</h2>
+  <p class="lede">
+    Small interactive programs written alongside my research. Each one is a single self-contained
+    page: everything runs in the browser, no data is uploaded and no external libraries are loaded,
+    so they also work offline once the page has been opened.
+  </p>
+
+  <div class="tool-list">
+
+    <div class="tool-card">
+      <h3><a href="picard-axes.html">Axes of Loxodromic Elements in the Picard Group</a></h3>
+      <p>
+        Enter a matrix <code>[[a,b],[c,d]]</code> with <code>ad &minus; bc = 1</code> and, if the element is
+        loxodromic, the tool draws its axis in hyperbolic 3-space &mdash; the geodesic joining its two fixed
+        points on <code>&part;H&sup3; = &#8450; &cup; {&infin;}</code> &mdash; together with the closed geodesic
+        the axis induces on the quotient orbifold <code>H&sup3;/PSL(2,&nbsp;&#8484;[i])</code>, folded into the
+        Bianchi fundamental domain.
+      </p>
+      <p>
+        It reports the trace, the eigenvalue of modulus greater than one, the translation length, the holonomy
+        and the complex length, and tests reversibility through the invariant
+        <code>f<sub>A</sub> = (a&minus;d)/c</code>, searching the conjugacy class for representatives in the
+        special normal form <code>[[d+ck, b],[c, d]]</code>.
+      </p>
+      <p class="tool-meta">
+        <span>Hyperbolic geometry</span><span>Kleinian groups</span><span>Companion to <em>Reversibility and its
+        asymptotic counting in the Picard group</em></span>
+      </p>
+    </div>
+
+  </div>
+</main>
+<footer>© 2026 Debattam Das · Last updated July 2026</footer>
+</body>
+</html>
