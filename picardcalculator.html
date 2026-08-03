@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Exact symbolic 2x2 matrix algebra over the Gaussian integers Z[i], the setting of the Picard group PSL(2,Z[i]).">
+    <title>Picard Group Matrix Calculator &mdash; Debattam Das</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* --accent, --accent-light, --bg, --border, --muted, --text and --card
+           are inherited from style.css and deliberately not redefined here */
+        :root {
+            --panel: #ffffff;
+            --accent-dark: #14405c;
+            --ok: #157347;
+            --err: #b02a37;
+        }
+        main.wide { max-width: 1000px; }
+        .crumb { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem; margin: 0 0 0.4rem; }
+        .crumb a { color: var(--muted); text-decoration: none; }
+        .crumb a:hover { color: var(--accent); text-decoration: underline; }
+        .lede { color: var(--muted); font-size: 0.95rem; }
+        .content {
+            padding: 1.2rem 1.3rem; margin-top: 1.2rem;
+            background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+        }
+        button { font-family: 'Helvetica Neue', Arial, sans-serif; }
+        p.lead { color: var(--muted); line-height: 1.55; font-size: 0.95rem; }
+        .matrices {
+            display: flex; flex-wrap: wrap; gap: 28px;
+            align-items: flex-start; justify-content: center; margin: 18px 0;
+        }
+        .matrix-card { text-align: center; }
+        .matrix-card h3 { margin: 0 0 10px; font-size: 1.05rem; }
+        .matrix-grid {
+            display: inline-grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+            padding: 12px; border-left: 3px solid var(--muted); border-right: 3px solid var(--muted);
+            border-radius: 4px;
+        }
+        .matrix-grid input {
+            width: 100px; padding: 8px 6px; text-align: center; font-size: 1rem;
+            border: 1px solid var(--border); border-radius: 4px;
+            font-family: "Courier New", monospace;
+        }
+        .matrix-grid input:focus {
+            outline: none; border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+        }
+        .matrix-tools { margin-top: 10px; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+        .matrix-tools button {
+            font-size: 0.78rem; padding: 4px 8px; background: #eef2f6;
+            color: var(--accent); border: 1px solid var(--border); border-radius: 4px; cursor: pointer;
+        }
+        .matrix-tools button:hover { background: #e2e9f0; border-color: var(--accent-light); }
+        .ops { margin: 20px 0; }
+        .ops h4 { margin: 16px 0 8px; color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        .op-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        .op-row button {
+            padding: 9px 14px; background: var(--accent); color: white;
+            border: none; border-radius: 6px; cursor: pointer; font-size: 0.92rem;
+        }
+        .op-row button:hover { background: var(--accent-dark); }
+        .op-row button.secondary { background: #f1f5f9; color: #334155; border: 1px solid var(--border); }
+        .op-row button.secondary:hover { background: #e2e8f0; }
+        .power-inline { display: inline-flex; align-items: center; gap: 6px; }
+        .power-inline input { width: 56px; padding: 8px; text-align: center; border: 1px solid var(--border); border-radius: 6px; }
+        .expr-input {
+            flex: 1 1 320px; min-width: 220px; padding: 11px 12px; font-size: 1rem;
+            font-family: "Courier New", monospace; border: 1px solid var(--border); border-radius: 6px;
+        }
+        .expr-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+        .examples { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+        .examples button {
+            font-size: 0.82rem; padding: 5px 10px; background: #f1f5f9; color: #334155;
+            border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+            font-family: "Courier New", monospace;
+        }
+        .examples button:hover { background: #e2e8f0; }
+        #result {
+            margin-top: 18px; padding: 18px; background: #f8fafc;
+            border: 1px solid #e2e8f0; border-radius: 8px; min-height: 60px;
+        }
+        #result .title { font-weight: bold; margin-bottom: 10px; }
+        .matrix-scroll { overflow-x: auto; max-width: 100%; }
+        .result-matrix {
+            display: inline-grid; grid-template-columns: repeat(2, auto); gap: 8px 26px;
+            padding: 10px 16px; border-left: 3px solid var(--muted); border-right: 3px solid var(--muted);
+            border-radius: 4px; font-family: "Courier New", monospace; font-size: 1.02rem; background: white;
+        }
+        .result-matrix span { text-align: center; min-width: 40px; white-space: nowrap; }
+        .scalar {
+            font-family: "Courier New", monospace; font-size: 1.15rem; background: white;
+            padding: 8px 14px; border-radius: 4px; display: inline-block; border: 1px solid #e2e8f0;
+            white-space: nowrap; overflow-x: auto; max-width: 100%;
+        }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; margin-left: 8px; }
+        .badge.ok { background: #d1e7dd; color: var(--ok); }
+        .badge.no { background: #f8d7da; color: var(--err); }
+        .badge.sym { background: #e2e8f0; color: #334155; }
+        .err-msg { color: var(--err); font-weight: bold; }
+        .note { color: var(--muted); font-size: 0.85rem; margin-top: 8px; line-height: 1.55; }
+        details { margin-top: 22px; }
+        summary { cursor: pointer; font-weight: bold; color: var(--accent-dark); }
+        .help { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+        code { background: #eef2f7; padding: 1px 5px; border-radius: 4px; font-family: "Courier New", monospace; }
+        .gens { margin-top: 8px; }
+        .gens button {
+            font-size: 0.82rem; padding: 5px 10px; margin: 3px; background: #f1f5f9; color: #334155;
+            border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-family: "Courier New", monospace;
+        }
+        .gens button:hover { background: #e2e8f0; }
+        @media (max-width: 560px) { .matrix-grid input { width: 74px; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><a href="index.html">Debattam Das</a></h1>
+        <p class="tagline">Postdoctoral Fellow · Department of Mathematics &amp; Statistics · IIT Kanpur</p>
+    </header>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="research.html">Research</a>
+        <a href="publications.html">Publications</a>
+        <a href="talks.html">Talks</a>
+        <a href="teaching.html">Teaching</a>
+        <a href="tools.html" class="active">Research Tools</a>
+        <a href="cv.pdf">CV</a>
+    </nav>
+
+    <main class="wide">
+    <p class="crumb"><a href="tools.html">&larr; Tools for Research</a></p>
+    <h2>Picard Group Matrix Calculator</h2>
+    <p class="lede">
+        Symbolic 2&times;2 matrix algebra over the Gaussian integers &#8484;[i] &mdash; the setting of
+        PSL(2,&nbsp;&#8484;[i]).
+    </p>
+
+    <div class="content">
+        <p class="lead">
+            Entries may be <strong>numbers</strong> (Gaussian integers such as <code>1+2i</code>,
+            <code>3-i</code>, <code>-2</code>) <em>or</em> <strong>symbolic variables</strong>
+            (<code>a</code>, <code>b</code>, <code>c</code>, &hellip;) and any expression built from them
+            with <code>+ &minus; * / ^</code> and parentheses. All algebra is exact and symbolic:
+            products are expanded by the distributive law
+            (<code>a(b+c) = ab + ac</code>), <code>i&sup2; = &minus;1</code>, and division produces
+            reduced rational expressions &mdash; so the inverse of <code>{{a,b},{c,d}}</code> comes out as
+            <code>d/(a&middot;d &minus; b&middot;c)</code>, exactly like a Picard-group computation by hand.
+        </p>
+
+        <div class="matrices">
+            <div class="matrix-card">
+                <h3>Matrix A</h3>
+                <div class="matrix-grid">
+                    <input id="A00" value="a" aria-label="A row 1 col 1">
+                    <input id="A01" value="b" aria-label="A row 1 col 2">
+                    <input id="A10" value="c" aria-label="A row 2 col 1">
+                    <input id="A11" value="d" aria-label="A row 2 col 2">
+                </div>
+                <div class="matrix-tools">
+                    <button onclick="setIdentity('A')">Identity</button>
+                    <button onclick="setMatrix('A',[['a','b'],['c','d']])">a b c d</button>
+                    <button onclick="clearMatrix('A')">Clear</button>
+                    <button onclick="copyMatrix('A','B')">A &rarr; B</button>
+                </div>
+                <div class="gens">
+                    <button onclick="setMatrix('A',[['0','-1'],['1','0']])" title="Order-2 inversion">S</button>
+                    <button onclick="setMatrix('A',[['1','1'],['0','1']])" title="Real translation">T</button>
+                    <button onclick="setMatrix('A',[['1','i'],['0','1']])" title="Imaginary translation">U</button>
+                </div>
+            </div>
+
+            <div class="matrix-card">
+                <h3>Matrix B</h3>
+                <div class="matrix-grid">
+                    <input id="B00" value="e" aria-label="B row 1 col 1">
+                    <input id="B01" value="f" aria-label="B row 1 col 2">
+                    <input id="B10" value="g" aria-label="B row 2 col 1">
+                    <input id="B11" value="h" aria-label="B row 2 col 2">
+                </div>
+                <div class="matrix-tools">
+                    <button onclick="setIdentity('B')">Identity</button>
+                    <button onclick="setMatrix('B',[['e','f'],['g','h']])">e f g h</button>
+                    <button onclick="clearMatrix('B')">Clear</button>
+                    <button onclick="copyMatrix('B','A')">B &rarr; A</button>
+                </div>
+                <div class="gens">
+                    <button onclick="setMatrix('B',[['0','-1'],['1','0']])" title="Order-2 inversion">S</button>
+                    <button onclick="setMatrix('B',[['1','1'],['0','1']])" title="Real translation">T</button>
+                    <button onclick="setMatrix('B',[['1','i'],['0','1']])" title="Imaginary translation">U</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="ops">
+            <h4>Type any expression you want</h4>
+            <div class="op-row" style="align-items:center">
+                <input id="expr" class="expr-input" value="A^-1"
+                       placeholder="e.g.  A^-1   A*B   det(A)   A*B*A^-1   (A+B)^2   a*(b+c)"
+                       aria-label="expression to evaluate">
+                <button onclick="run('expr')">Evaluate</button>
+            </div>
+            <div style="margin-top:10px">
+                <label style="cursor:pointer; font-size:0.92rem; color:#334155;">
+                    <input type="checkbox" id="sl2" onchange="run('expr')" style="vertical-align:middle;">
+                    Assume the Picard / SL&#8322; relation
+                    <code>a&middot;d &minus; b&middot;c = 1</code>
+                    (for entries <code>a, b, c, d</code>)
+                </label>
+            </div>
+            <div class="note">
+                Matrix variables <code>A</code>, <code>B</code>, identity <code>I</code>; scalar variables
+                are any lowercase letters and the imaginary unit <code>i</code>. Operators
+                <code>+ &minus; * / ^</code> (e.g. <code>A^-1</code>, <code>A^2</code>,
+                <code>A/B</code> = A&middot;B<sup>&minus;1</sup>). Functions: <code>det</code>,
+                <code>tr</code>, <code>inv</code>, <code>adj</code>, <code>transpose</code>,
+                <code>adjoint</code>, <code>conj</code>. Implicit products like <code>2A</code> or
+                <code>a(b+c)</code> work.
+            </div>
+            <div class="examples">
+                <button onclick="setExpr('A^-1')">A^-1</button>
+                <button onclick="setExpr('A*B')">A*B</button>
+                <button onclick="setExpr('det(A)')">det(A)</button>
+                <button onclick="setExpr('A*B*A^-1')">A*B*A^-1</button>
+                <button onclick="setExpr('(A+B)^2')">(A+B)^2</button>
+                <button onclick="setExpr('A*adjoint(A)')">A*adjoint(A)</button>
+                <button onclick="setExpr('a*(b+c)')">a*(b+c)</button>
+                <button onclick="setExpr('(a+b)^2')">(a+b)^2</button>
+            </div>
+
+            <h4>&hellip; or use the quick buttons</h4>
+            <div class="op-row">
+                <button onclick="run('AB')">A &times; B</button>
+                <button onclick="run('BA')">B &times; A</button>
+                <button onclick="run('A+B')">A + B</button>
+                <button onclick="run('A-B')">A &minus; B</button>
+                <button onclick="run('invA')">A<sup>&minus;1</sup></button>
+                <button onclick="run('detA')" class="secondary">det A</button>
+                <button onclick="run('trA')" class="secondary">tr A</button>
+                <button onclick="run('adjA')" class="secondary">adj A</button>
+                <button onclick="run('transA')" class="secondary">A<sup>T</sup></button>
+                <button onclick="run('checkA')" class="secondary">Check Picard</button>
+                <span class="power-inline">
+                    <button onclick="run('powA')">A<sup>n</sup></button>
+                    n = <input id="powN" value="2" aria-label="power exponent">
+                </span>
+            </div>
+        </div>
+
+        <div id="result">
+            <div class="note">Results appear here. The default shows the symbolic inverse of
+                <code>{{a,b},{c,d}}</code> &mdash; press <strong>Evaluate</strong>.</div>
+        </div>
+
+        <details>
+            <summary>Input format &amp; notes</summary>
+            <div class="help">
+                <ul>
+                    <li><strong>Numeric entries:</strong> Gaussian integers written as <code>a+bi</code>,
+                        e.g. <code>2</code>, <code>-3</code>, <code>i</code>, <code>-i</code>,
+                        <code>4i</code>, <code>1+2i</code>, <code>3-i</code>. Fractions like <code>1/2</code>
+                        are allowed too (kept exact).</li>
+                    <li><strong>Symbolic entries:</strong> any letters as variables, combined with
+                        <code>+ &minus; * / ^</code> and parentheses, e.g. <code>a</code>,
+                        <code>2a+1</code>, <code>a*(b+c)</code>, <code>(1+i)*z</code>. Multiplication
+                        is expanded and like terms are collected automatically.</li>
+                    <li><code>i</code> is the imaginary unit with <code>i&sup2; = &minus;1</code>; it is not a
+                        variable.</li>
+                    <li><strong>S</strong>, <strong>T</strong>, <strong>U</strong> are standard generators of
+                        PSL(2,&#8484;[i]): <code>S=[[0,-1],[1,0]]</code>, <code>T=[[1,1],[0,1]]</code>,
+                        <code>U=[[1,i],[0,1]]</code>.</li>
+                    <li>Powers accept negative exponents (via the inverse) and <code>0</code> (identity).</li>
+                    <li><em>Check Picard</em> reports membership in PSL(2,&#8484;[i]) for a
+                        <em>numeric</em> matrix (Gaussian-integer entries and determinant&nbsp;1). For
+                        symbolic matrices it shows the symbolic determinant instead.</li>
+                </ul>
+            </div>
+        </details>
+    </div>
+    </main>
+
+    <footer>© 2026 Debattam Das · Last updated July 2026</footer>
+
+<script>
+"use strict";
+/* =====================================================================
+   Symbolic algebra engine
+   ---------------------------------------------------------------------
+   Coefficients : Gaussian integers  G = {re, im}  (integers)
+   Monomials    : map  variable -> positive integer exponent
+   Polynomials  : list of terms {c: G, m: monomial}, like terms combined
+   Values       : rational functions  {n: Poly, d: Poly}, reduced
+   Matrices     : 2x2 arrays of rational functions
+   ===================================================================== */
+
+/* ---- Gaussian-integer coefficients ---- */
+function G(re, im) { return { re: re, im: im || 0 }; }
+function gAdd(a, b) { return G(a.re + b.re, a.im + b.im); }
+function gMul(a, b) { return G(a.re*b.re - a.im*b.im, a.re*b.im + a.im*b.re); }
+function gNeg(a) { return G(-a.re, -a.im); }
+function gConj(a) { return G(a.re, -a.im); }
+function gIsZero(a) { return a.re === 0 && a.im === 0; }
+function gEqual(a, b) { return a.re === b.re && a.im === b.im; }
+
+/* ---- monomials ---- */
+function monKey(m) {
+    const ks = Object.keys(m).filter(function (k) { return m[k] !== 0; }).sort();
+    return ks.map(function (k) { return k + "^" + m[k]; }).join("*");
+}
+function monClone(m) { return Object.assign({}, m); }
+function monMul(a, b) {
+    const r = monClone(a);
+    for (const k in b) { r[k] = (r[k] || 0) + b[k]; if (r[k] === 0) delete r[k]; }
+    return r;
+}
+function totalDeg(m) { let s = 0; for (const k in m) s += m[k]; return s; }
+
+/* ---- polynomials ---- */
+function polyNorm(terms) {
+    const map = {};
+    for (const t of terms) {
+        const k = monKey(t.m);
+        if (!map[k]) map[k] = { c: G(0, 0), m: t.m };
+        map[k].c = gAdd(map[k].c, t.c);
+    }
+    const out = [];
+    for (const k in map) if (!gIsZero(map[k].c)) out.push({ c: map[k].c, m: map[k].m });
+    return out;
+}
+function polyConst(g) { return gIsZero(g) ? [] : [{ c: g, m: {} }]; }
+function polyOne() { return polyConst(G(1, 0)); }
+function polyVar(name) { return [{ c: G(1, 0), m: (function () { const o = {}; o[name] = 1; return o; })() }]; }
+function pAdd(a, b) { return polyNorm(a.concat(b)); }
+function pNeg(a) { return a.map(function (t) { return { c: gNeg(t.c), m: t.m }; }); }
+function pSub(a, b) { return pAdd(a, pNeg(b)); }
+function pMul(a, b) {
+    const out = [];
+    for (const s of a) for (const t of b) out.push({ c: gMul(s.c, t.c), m: monMul(s.m, t.m) });
+    return polyNorm(out);
+}
+function pConjP(a) { return a.map(function (t) { return { c: gConj(t.c), m: t.m }; }); }
+function pIsZero(a) { return a.length === 0; }
+function pIsConst(a) { return a.length === 0 || (a.length === 1 && monKey(a[0].m) === ""); }
+function pConstVal(a) { return a.length === 0 ? G(0, 0) : a[0].c; }
+function pEqual(a, b) { return pIsZero(pSub(a, b)); }
+
+function cmpTerm(t1, t2) {
+    const d1 = totalDeg(t1.m), d2 = totalDeg(t2.m);
+    if (d1 !== d2) return d2 - d1;
+    const vars = Array.from(new Set(Object.keys(t1.m).concat(Object.keys(t2.m)))).sort();
+    for (const v of vars) { const e1 = t1.m[v] || 0, e2 = t2.m[v] || 0; if (e1 !== e2) return e2 - e1; }
+    return 0;
+}
+function sortedTerms(poly) { return poly.slice().sort(cmpTerm); }
+function leadingTerm(poly) { return poly.length === 0 ? null : sortedTerms(poly)[0]; }
+
+/* ---- rational functions  n/d  ---- */
+function intGcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { const t = a % b; a = b; b = t; } return a; }
+function commonMon(terms) {
+    let common = null;
+    for (const t of terms) {
+        if (common === null) common = monClone(t.m);
+        else {
+            const nc = {};
+            for (const k in common) { const e = Math.min(common[k], t.m[k] || 0); if (e > 0) nc[k] = e; }
+            common = nc;
+        }
+    }
+    return common || {};
+}
+function divMon(m, sub) {
+    const r = monClone(m);
+    for (const k in sub) { r[k] = (r[k] || 0) - sub[k]; if (r[k] <= 0) delete r[k]; }
+    return r;
+}
+function polyDivMon(terms, sub) { return terms.map(function (t) { return { c: t.c, m: divMon(t.m, sub) }; }); }
+
+/* When true, algebra is carried out modulo the Picard/SL2 relation
+   a*d - b*c = 1, implemented as the terminating rewrite  a*d -> b*c + 1. */
+var USE_RELATION = false;
+function reduceMonRelation(poly) {
+    let terms = poly, changed = true;
+    while (changed) {
+        changed = false;
+        const out = [];
+        for (const t of terms) {
+            const ea = t.m["a"] || 0, ed = t.m["d"] || 0;
+            if (ea > 0 && ed > 0) {
+                changed = true;
+                const rest = monClone(t.m);
+                rest["a"] = ea - 1; if (rest["a"] === 0) delete rest["a"];
+                rest["d"] = ed - 1; if (rest["d"] === 0) delete rest["d"];
+                // a*d -> b*c + 1  (multiply the remaining factors back in)
+                out.push({ c: t.c, m: monMul(rest, { b: 1, c: 1 }) });
+                out.push({ c: t.c, m: rest });
+            } else {
+                out.push(t);
+            }
+        }
+        terms = polyNorm(out);
+    }
+    return terms;
+}
+
+function reduce(rat) {
+    let n = rat.n, d = rat.d;
+    if (USE_RELATION) { n = reduceMonRelation(n); d = reduceMonRelation(d); }
+    if (pIsZero(d)) throw new Error("division by zero");
+    if (pIsZero(n)) return { n: [], d: polyOne() };
+    // exact-ratio simplifications (no full polynomial GCD is attempted)
+    if (pEqual(n, d)) return rOne();
+    if (pEqual(n, pNeg(d))) return rConst(G(-1, 0));
+    // 1. cancel common monomial factors shared by every term of n and d
+    const cn = commonMon(n), cd = commonMon(d), cancel = {};
+    for (const k in cn) if (cd[k]) cancel[k] = Math.min(cn[k], cd[k]);
+    if (Object.keys(cancel).length) { n = polyDivMon(n, cancel); d = polyDivMon(d, cancel); }
+    // 2. rationalize a constant complex denominator (k -> |k|^2 real)
+    if (pIsConst(d)) {
+        const k = pConstVal(d);
+        if (k.im !== 0) { const kb = gConj(k); n = pMul(n, polyConst(kb)); d = pMul(d, polyConst(kb)); }
+    }
+    // 3. divide out the integer content shared by n and d
+    let g = 0;
+    for (const t of n) { g = intGcd(g, t.c.re); g = intGcd(g, t.c.im); }
+    for (const t of d) { g = intGcd(g, t.c.re); g = intGcd(g, t.c.im); }
+    if (g > 1) {
+        n = n.map(function (t) { return { c: G(t.c.re / g, t.c.im / g), m: t.m }; });
+        d = d.map(function (t) { return { c: G(t.c.re / g, t.c.im / g), m: t.m }; });
+    }
+    // 4. normalize sign so the leading denominator term is positive
+    const lead = leadingTerm(d);
+    if (lead && (lead.c.re < 0 || (lead.c.re === 0 && lead.c.im < 0))) { n = pNeg(n); d = pNeg(d); }
+    return { n: n, d: d };
+}
+
+function rConst(g) { return { n: polyConst(g), d: polyOne() }; }
+function rZero() { return { n: [], d: polyOne() }; }
+function rOne() { return rConst(G(1, 0)); }
+function rVar(name) { return { n: polyVar(name), d: polyOne() }; }
+function rAdd(x, y) { return reduce({ n: pAdd(pMul(x.n, y.d), pMul(y.n, x.d)), d: pMul(x.d, y.d) }); }
+function rSub(x, y) { return reduce({ n: pSub(pMul(x.n, y.d), pMul(y.n, x.d)), d: pMul(x.d, y.d) }); }
+function rMul(x, y) { return reduce({ n: pMul(x.n, y.n), d: pMul(x.d, y.d) }); }
+function rNeg(x) { return { n: pNeg(x.n), d: x.d }; }
+function rDiv(x, y) {
+    if (pIsZero(y.n)) throw new Error("division by zero");
+    return reduce({ n: pMul(x.n, y.d), d: pMul(x.d, y.n) });
+}
+function rConj(x) { return reduce({ n: pConjP(x.n), d: pConjP(x.d) }); }
+function rIsZero(x) { return pIsZero(x.n); }
+function rEqual(x, y) { return rIsZero(rSub(x, y)); }
+function rPow(x, k) {
+    let base = x;
+    if (k < 0) { base = rDiv(rOne(), x); k = -k; }
+    let r = rOne();
+    for (let j = 0; j < k; j++) r = rMul(r, base);
+    return r;
+}
+function rIsConst(x) { return pIsConst(x.n) && pIsConst(x.d); }
+function rIsGaussianInt(x) {
+    return pIsConst(x.n) && pIsConst(x.d) && gEqual(pConstVal(x.d), G(1, 0));
+}
+function rToInt(x) {
+    if (!(pIsConst(x.n) && pIsConst(x.d) && gEqual(pConstVal(x.d), G(1, 0))))
+        throw new Error("exponent must be an integer");
+    const c = pConstVal(x.n);
+    if (c.im !== 0 || !Number.isInteger(c.re)) throw new Error("exponent must be an integer");
+    return c.re;
+}
+
+/* ---- formatting ---- */
+function fmtGauss(g) {
+    if (g.re === 0 && g.im === 0) return "0";
+    if (g.im === 0) return String(g.re);
+    if (g.re === 0) { if (g.im === 1) return "i"; if (g.im === -1) return "-i"; return g.im + "i"; }
+    const imPart = (Math.abs(g.im) === 1 ? "i" : Math.abs(g.im) + "i");
+    return g.re + (g.im < 0 ? " - " : " + ") + imPart;
+}
+function monStr(m) {
+    const ks = Object.keys(m).filter(function (k) { return m[k] > 0; }).sort();
+    return ks.map(function (k) { return m[k] === 1 ? k : k + "^" + m[k]; }).join("*");
+}
+function termStr(t) {
+    const ms = monStr(t.m), c = t.c;
+    if (ms === "") {
+        if (c.im === 0) return { neg: c.re < 0, s: String(Math.abs(c.re)) };
+        return { neg: false, s: fmtGauss(c) };
+    }
+    if (c.im === 0) {
+        if (c.re === 1) return { neg: false, s: ms };
+        if (c.re === -1) return { neg: true, s: ms };
+        return { neg: c.re < 0, s: Math.abs(c.re) + "*" + ms };
+    }
+    if (c.re === 0) {
+        if (c.im === 1) return { neg: false, s: "i*" + ms };
+        if (c.im === -1) return { neg: true, s: "i*" + ms };
+        return { neg: c.im < 0, s: Math.abs(c.im) + "i*" + ms };
+    }
+    return { neg: false, s: "(" + fmtGauss(c) + ")*" + ms };
+}
+function polyStr(poly) {
+    if (poly.length === 0) return "0";
+    const terms = sortedTerms(poly);
+    let out = "";
+    for (let idx = 0; idx < terms.length; idx++) {
+        const r = termStr(terms[idx]);
+        if (idx === 0) out = (r.neg ? "-" : "") + r.s;
+        else out += (r.neg ? " - " : " + ") + r.s;
+    }
+    return out;
+}
+function ratStr(x) {
+    if (pIsZero(x.n)) return "0";
+    const nStr = polyStr(x.n);
+    if (pIsConst(x.d) && gEqual(pConstVal(x.d), G(1, 0))) return nStr;
+    const dStr = polyStr(x.d);
+    const nn = x.n.length > 1 ? "(" + nStr + ")" : nStr;
+    const dd = x.d.length > 1 ? "(" + dStr + ")" : dStr;
+    return nn + "/" + dd;
+}
+
+/* =====================================================================
+   Matrices of rational functions (2x2 as [[a,b],[c,d]])
+   ===================================================================== */
+function matMul(A, B) {
+    const R = [[null, null], [null, null]];
+    for (let i = 0; i < 2; i++)
+        for (let j = 0; j < 2; j++)
+            R[i][j] = rAdd(rMul(A[i][0], B[0][j]), rMul(A[i][1], B[1][j]));
+    return R;
+}
+function matAdd(A, B) {
+    return [[rAdd(A[0][0], B[0][0]), rAdd(A[0][1], B[0][1])],
+            [rAdd(A[1][0], B[1][0]), rAdd(A[1][1], B[1][1])]];
+}
+function matSub(A, B) {
+    return [[rSub(A[0][0], B[0][0]), rSub(A[0][1], B[0][1])],
+            [rSub(A[1][0], B[1][0]), rSub(A[1][1], B[1][1])]];
+}
+function det(A) { return rSub(rMul(A[0][0], A[1][1]), rMul(A[0][1], A[1][0])); }
+function trace(A) { return rAdd(A[0][0], A[1][1]); }
+function adjugate(A) { return [[A[1][1], rNeg(A[0][1])], [rNeg(A[1][0]), A[0][0]]]; }
+function inverse(A) {
+    const d = det(A);
+    if (rIsZero(d)) throw new Error("matrix is singular (det = 0); not invertible");
+    const invD = rDiv(rOne(), d), ad = adjugate(A);
+    return [[rMul(ad[0][0], invD), rMul(ad[0][1], invD)],
+            [rMul(ad[1][0], invD), rMul(ad[1][1], invD)]];
+}
+function transpose(A) { return [[A[0][0], A[1][0]], [A[0][1], A[1][1]]]; }
+function conjTranspose(A) {
+    return [[rConj(A[0][0]), rConj(A[1][0])], [rConj(A[0][1]), rConj(A[1][1])]];
+}
+function conjMat(A) {
+    return [[rConj(A[0][0]), rConj(A[0][1])], [rConj(A[1][0]), rConj(A[1][1])]];
+}
+function identityMat() { return [[rOne(), rZero()], [rZero(), rOne()]]; }
+function scaleMat(A, s) {
+    return [[rMul(A[0][0], s), rMul(A[0][1], s)], [rMul(A[1][0], s), rMul(A[1][1], s)]];
+}
+function scalarToMat(s) { return [[s, rZero()], [rZero(), s]]; }
+function matPow(A, n) {
+    if (!Number.isInteger(n)) throw new Error("exponent must be an integer");
+    let base = A;
+    if (n < 0) { base = inverse(A); n = -n; }
+    let r = identityMat();
+    for (let k = 0; k < n; k++) r = matMul(r, base);
+    return r;
+}
+
+/* =====================================================================
+   Tokenizer + parsers (entry expressions and top-level expressions)
+   ===================================================================== */
+function tokenize(s) {
+    const toks = [];
+    const isDigit = function (c) { return c >= "0" && c <= "9"; };
+    const isAlpha = function (c) { return /[A-Za-z]/.test(c); };
+    let k = 0;
+    while (k < s.length) {
+        const c = s[k];
+        if (c === " " || c === "\t") { k++; continue; }
+        if (isDigit(c) || (c === "." && isDigit(s[k + 1]))) {
+            let j = k + 1;
+            while (j < s.length && (isDigit(s[j]) || s[j] === ".")) j++;
+            toks.push({ t: "num", v: s.slice(k, j) }); k = j; continue;
+        }
+        if (isAlpha(c)) {
+            let j = k + 1;
+            while (j < s.length && isAlpha(s[j])) j++;
+            toks.push({ t: "id", v: s.slice(k, j) }); k = j; continue;
+        }
+        if ("+-*/^()".indexOf(c) !== -1) { toks.push({ t: c }); k++; continue; }
+        throw new Error("unexpected character '" + c + "'");
+    }
+    return toks;
+}
+function numToRational(str) {
+    if (str.indexOf(".") === -1) return rConst(G(parseInt(str, 10), 0));
+    const parts = str.split(".");
+    if (parts.length !== 2) throw new Error("bad number '" + str + "'");
+    const intp = parts[0] === "" ? "0" : parts[0];
+    const frac = parts[1];
+    const denom = Math.pow(10, frac.length);
+    const numer = parseInt(intp + frac, 10);
+    return reduce({ n: polyConst(G(numer, 0)), d: polyConst(G(denom, 0)) });
+}
+
+/* Entry parser -> rational (all letters are symbolic variables except i) */
+function parseEntry(str) {
+    const toks = tokenize(str);
+    if (toks.length === 0) return rZero();
+    let pos = 0;
+    const peek = function () { return toks[pos]; };
+    const next = function () { return toks[pos++]; };
+    const expect = function (t) { if (!peek() || peek().t !== t) throw new Error("expected '" + t + "'"); return next(); };
+
+    function expr() {
+        let l = term();
+        while (peek() && (peek().t === "+" || peek().t === "-")) {
+            const op = next().t; const r = term();
+            l = op === "+" ? rAdd(l, r) : rSub(l, r);
+        }
+        return l;
+    }
+    function term() {
+        let l = unary();
+        while (true) {
+            const p = peek(); if (!p) break;
+            if (p.t === "*") { next(); l = rMul(l, unary()); }
+            else if (p.t === "/") { next(); l = rDiv(l, unary()); }
+            else if (p.t === "num" || p.t === "id" || p.t === "(") l = rMul(l, unary());
+            else break;
+        }
+        return l;
+    }
+    function unary() {
+        if (peek() && peek().t === "-") { next(); return rNeg(unary()); }
+        if (peek() && peek().t === "+") { next(); return unary(); }
+        return power();
+    }
+    function power() {
+        let b = primary();
+        if (peek() && peek().t === "^") { next(); const e = unary(); b = rPow(b, rToInt(e)); }
+        return b;
+    }
+    function primary() {
+        const p = peek();
+        if (!p) throw new Error("unexpected end of entry");
+        if (p.t === "(") { next(); const e = expr(); expect(")"); return e; }
+        if (p.t === "num") { next(); return numToRational(p.v); }
+        if (p.t === "id") { next(); return p.v === "i" ? rConst(G(0, 1)) : rVar(p.v); }
+        throw new Error("unexpected token");
+    }
+    const result = expr();
+    if (pos < toks.length) throw new Error("unexpected trailing input");
+    return result;
+}
+
+/* Top-level expression parser -> value {k:'S'|'M'} */
+const FUNCS = { det: 1, tr: 1, trace: 1, inv: 1, adj: 1, transpose: 1, adjoint: 1, conj: 1 };
+function Sval(r) { return { k: "S", r: r }; }
+function Mval(m) { return { k: "M", m: m }; }
+
+function vAdd(a, b) {
+    if (a.k === "S" && b.k === "S") return Sval(rAdd(a.r, b.r));
+    const A = a.k === "M" ? a.m : scalarToMat(a.r);
+    const B = b.k === "M" ? b.m : scalarToMat(b.r);
+    return Mval(matAdd(A, B));
+}
+function vSub(a, b) {
+    if (a.k === "S" && b.k === "S") return Sval(rSub(a.r, b.r));
+    const A = a.k === "M" ? a.m : scalarToMat(a.r);
+    const B = b.k === "M" ? b.m : scalarToMat(b.r);
+    return Mval(matSub(A, B));
+}
+function vMul(a, b) {
+    if (a.k === "S" && b.k === "S") return Sval(rMul(a.r, b.r));
+    if (a.k === "S" && b.k === "M") return Mval(scaleMat(b.m, a.r));
+    if (a.k === "M" && b.k === "S") return Mval(scaleMat(a.m, b.r));
+    return Mval(matMul(a.m, b.m));
+}
+function vDiv(a, b) {
+    if (a.k === "S" && b.k === "S") return Sval(rDiv(a.r, b.r));
+    if (a.k === "M" && b.k === "S") return Mval(scaleMat(a.m, rDiv(rOne(), b.r)));
+    if (a.k === "S" && b.k === "M") return Mval(scaleMat(inverse(b.m), a.r));
+    return Mval(matMul(a.m, inverse(b.m)));
+}
+function vNeg(a) { return a.k === "S" ? Sval(rNeg(a.r)) : Mval(scaleMat(a.m, rConst(G(-1, 0)))); }
+function vPow(base, exp) {
+    if (exp.k !== "S") throw new Error("exponent must be a scalar integer");
+    const n = rToInt(exp.r);
+    return base.k === "S" ? Sval(rPow(base.r, n)) : Mval(matPow(base.m, n));
+}
+function applyFunc(name, arg) {
+    if (arg.k !== "M") throw new Error(name + "() needs a matrix argument");
+    const m = arg.m;
+    switch (name) {
+        case "det": return Sval(det(m));
+        case "tr": case "trace": return Sval(trace(m));
+        case "inv": return Mval(inverse(m));
+        case "adj": return Mval(adjugate(m));
+        case "transpose": return Mval(transpose(m));
+        case "adjoint": return Mval(conjTranspose(m));
+        case "conj": return Mval(conjMat(m));
+    }
+    throw new Error("unknown function '" + name + "'");
+}
+function resolveVar(name) {
+    if (name === "A") return Mval(readMatrix("A"));
+    if (name === "B") return Mval(readMatrix("B"));
+    if (name === "I") return Mval(identityMat());
+    if (name === "i") return Sval(rConst(G(0, 1)));
+    return Sval(rVar(name));   // any other letters: symbolic scalar variable
+}
+
+function evalExpression(str) {
+    const toks = tokenize(str);
+    if (toks.length === 0) throw new Error("empty expression");
+    let pos = 0;
+    const peek = function () { return toks[pos]; };
+    const next = function () { return toks[pos++]; };
+    const expect = function (t) { if (!peek() || peek().t !== t) throw new Error("expected '" + t + "'"); return next(); };
+
+    function expr() {
+        let l = term();
+        while (peek() && (peek().t === "+" || peek().t === "-")) {
+            const op = next().t; const r = term();
+            l = op === "+" ? vAdd(l, r) : vSub(l, r);
+        }
+        return l;
+    }
+    function term() {
+        let l = unary();
+        while (true) {
+            const p = peek(); if (!p) break;
+            if (p.t === "*") { next(); l = vMul(l, unary()); }
+            else if (p.t === "/") { next(); l = vDiv(l, unary()); }
+            else if (p.t === "num" || p.t === "id" || p.t === "(") l = vMul(l, unary());
+            else break;
+        }
+        return l;
+    }
+    function unary() {
+        if (peek() && peek().t === "-") { next(); return vNeg(unary()); }
+        if (peek() && peek().t === "+") { next(); return unary(); }
+        return power();
+    }
+    function power() {
+        let b = primary();
+        if (peek() && peek().t === "^") { next(); const e = unary(); b = vPow(b, e); }
+        return b;
+    }
+    function primary() {
+        const p = peek();
+        if (!p) throw new Error("unexpected end of expression");
+        if (p.t === "(") { next(); const e = expr(); expect(")"); return e; }
+        if (p.t === "num") { next(); return Sval(numToRational(p.v)); }
+        if (p.t === "id") {
+            next();
+            if (FUNCS[p.v] && peek() && peek().t === "(") {
+                next(); const arg = expr(); expect(")"); return applyFunc(p.v, arg);
+            }
+            return resolveVar(p.v);
+        }
+        throw new Error("unexpected token '" + (p.v || p.t) + "'");
+    }
+    const result = expr();
+    if (pos < toks.length) throw new Error("unexpected trailing input near '" + (peek().v || peek().t) + "'");
+    return result;
+}
+
+/* =====================================================================
+   Picard-group status
+   ===================================================================== */
+function picardStatus(M) {
+    let symbolic = false, allGaussian = true;
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) {
+        if (!rIsConst(M[r][c])) symbolic = true;
+        if (!rIsGaussianInt(M[r][c])) allGaussian = false;
+    }
+    const d = det(M);
+    const detOne = !symbolic && rEqual(d, rOne());
+    return { symbolic: symbolic, allGaussian: allGaussian, det: d,
+             detOne: detOne, inGroup: !symbolic && allGaussian && detOne };
+}
+function picardExplain(s) {
+    if (s.symbolic)
+        return '<div class="note">Symbolic entries &mdash; Picard-group membership applies to numeric ' +
+               'matrices only. det = ' + escapeHtml(ratStr(s.det)) + ".</div>";
+    return '<div class="note">' +
+        (s.allGaussian ? "All entries are Gaussian integers." : "Some entries are not Gaussian integers.") +
+        " det = " + escapeHtml(ratStr(s.det)) + (s.detOne ? " (= 1)." : " (&ne; 1).") + "</div>";
+}
+function badgeFor(s) {
+    if (s.symbolic) return '<span class="badge sym">symbolic</span>';
+    return s.inGroup ? '<span class="badge ok">&#8712; PSL(2,&#8484;[i])</span>'
+                     : '<span class="badge no">&#8713; Picard group</span>';
+}
+
+/* =====================================================================
+   UI
+   ===================================================================== */
+function readMatrix(name) {
+    const m = [[null, null], [null, null]];
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) {
+        const el = document.getElementById(name + r + "" + c);
+        try { m[r][c] = parseEntry(el.value); }
+        catch (e) { throw new Error("Entry " + name + "[" + (r + 1) + "," + (c + 1) + "]: " + e.message); }
+    }
+    return m;
+}
+function setMatrix(name, vals) {
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++)
+        document.getElementById(name + r + "" + c).value = vals[r][c];
+}
+function setIdentity(name) { setMatrix(name, [["1", "0"], ["0", "1"]]); }
+function clearMatrix(name) { setMatrix(name, [["0", "0"], ["0", "0"]]); }
+function copyMatrix(from, to) {
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++)
+        document.getElementById(to + r + "" + c).value = document.getElementById(from + r + "" + c).value;
+}
+function setExpr(s) { document.getElementById("expr").value = s; run("expr"); }
+function escapeHtml(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+function matrixHTML(M) {
+    let cells = "";
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++)
+        cells += "<span>" + escapeHtml(ratStr(M[r][c])) + "</span>";
+    return '<div class="matrix-scroll"><div class="result-matrix">' + cells + "</div></div>";
+}
+function showMatrix(title, M) {
+    const s = picardStatus(M);
+    document.getElementById("result").innerHTML =
+        '<div class="title">' + title + badgeFor(s) + "</div>" + matrixHTML(M) + picardExplain(s);
+}
+function showScalar(title, r) {
+    document.getElementById("result").innerHTML =
+        '<div class="title">' + title + "</div><div class=\"scalar\">" + escapeHtml(ratStr(r)) + "</div>";
+}
+function showCheck(name, M) {
+    const s = picardStatus(M);
+    document.getElementById("result").innerHTML =
+        '<div class="title">Picard-group check for ' + name + badgeFor(s) + "</div>" +
+        matrixHTML(M) + picardExplain(s);
+}
+function showError(msg) {
+    document.getElementById("result").innerHTML = '<div class="err-msg">Error: ' + escapeHtml(msg) + "</div>";
+}
+
+function run(op) {
+    try {
+        const sl2 = document.getElementById("sl2");
+        USE_RELATION = !!(sl2 && sl2.checked);
+        switch (op) {
+            case "expr": {
+                const raw = document.getElementById("expr").value;
+                if (!raw || raw.trim() === "") throw new Error("enter an expression");
+                const v = evalExpression(raw);
+                const title = escapeHtml(raw.trim()) + " =";
+                if (v.k === "S") showScalar(title, v.r); else showMatrix(title, v.m);
+                break;
+            }
+            case "AB":   showMatrix("A &times; B", matMul(readMatrix("A"), readMatrix("B"))); break;
+            case "BA":   showMatrix("B &times; A", matMul(readMatrix("B"), readMatrix("A"))); break;
+            case "A+B":  showMatrix("A + B", matAdd(readMatrix("A"), readMatrix("B"))); break;
+            case "A-B":  showMatrix("A &minus; B", matSub(readMatrix("A"), readMatrix("B"))); break;
+            case "invA": showMatrix("A<sup>&minus;1</sup>", inverse(readMatrix("A"))); break;
+            case "detA": showScalar("det A", det(readMatrix("A"))); break;
+            case "trA":  showScalar("tr A", trace(readMatrix("A"))); break;
+            case "adjA": showMatrix("adj A (adjugate)", adjugate(readMatrix("A"))); break;
+            case "transA": showMatrix("A<sup>T</sup>", transpose(readMatrix("A"))); break;
+            case "checkA": showCheck("A", readMatrix("A")); break;
+            case "powA": {
+                const n = Number(document.getElementById("powN").value);
+                if (!Number.isInteger(n)) throw new Error("exponent n must be an integer");
+                showMatrix("A<sup>" + n + "</sup>", matPow(readMatrix("A"), n));
+                break;
+            }
+            default: throw new Error("unknown operation");
+        }
+    } catch (e) { showError(e.message); }
+}
+
+document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter" && ev.target && ev.target.tagName === "INPUT") {
+        if (ev.target.id === "powN") run("powA");
+        else if (ev.target.id === "expr") run("expr");
+        else run("expr");
+    }
+});
+</script>
+</body>
+</html>
