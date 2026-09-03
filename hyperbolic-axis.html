@@ -205,6 +205,7 @@
       <button id="qFit">fit</button>
       <span class="hint">drag to pan &middot; scroll to zoom</span>
       <span class="note" id="qViewNote"></span>
+      <span class="note" id="qWarn" style="color:var(--warn)"></span>
     </div>
     <div class="note">
       In the quotient the axis descends to a <span style="color:var(--axis)">closed geodesic</span> on the Hecke
@@ -251,7 +252,7 @@ function parseEps(str){
     const v=parseInt(t,10); if(v===0) return null; out.push(v); }
   return out;
 }
-let view=null, lastGeom=null, lastFold=null, showTess=true;
+let view=null, lastGeom=null, lastFold=null, showTess=true, lastClosure=0;
 
 /* ---------- main update ---------- */
 function update(refit){
@@ -283,6 +284,7 @@ function update(refit){
     } else { const x0=b/(a-d); geom={type:'vert',x:x0,attr:Math.abs(a)>1?Infinity:x0}; fpText=fmt(x0)+' , &infin;'; }
   }
   lastGeom=geom;
+  lastClosure=0;
   lastFold=(geom&&geom.type==='circle')?foldedGeodesic(geom,{a,b,c,d}):null;
 
   el('status').innerHTML =
@@ -373,18 +375,40 @@ function reduceToF(z){ let x=z.x,y=z.y,guard=0;
   x-=Math.round(x/lambda)*lambda; return {x,y}; }
 function foldedGeodesic(geom,g){
   const A_=Math.max(geom.p,geom.q), Bb=Math.min(geom.p,geom.q);
+  /* the axis, parametrised so that t is the multiplicative coordinate along it:
+     t = Im (z-A)/(z-B), with t=0 at A and t=∞ at B, and g acting as t ↦ κt */
   const zt=t=>{ const dd=1+t*t; return {x:(A_+Bb*t*t)/dd, y:t*(A_-Bb)/dd}; };
-  const gz=z=>{ const nr=g.a*z.x+g.b, ni=g.a*z.y, dr=g.c*z.x+g.d, di=g.c*z.y, dd=dr*dr+di*di;
-    return {x:(nr*dr+ni*di)/dd, y:(ni*dr-nr*di)/dd}; };
-  const Mt=z=>{ const nr=z.x-A_, ni=z.y, dr=z.x-Bb, di=z.y, dd=dr*dr+di*di; return (ni*dr-nr*di)/dd; };
-  const kappa=Mt(gz(zt(1)));
-  if(!isFinite(kappa)||kappa<=0||Math.abs(Math.log(kappa))<1e-6) return null;
-  const lnK=Math.log(kappa), N=900, EPS=0.2*Math.max(1,lambda), arcs=[]; let cur=[], prev=null;
-  for(let i=0;i<=N;i++){ const r=reduceToF(zt(Math.exp(lnK*(i/N))));
+  /* One period is any t-interval of multiplicative length κ = e^L, where
+     L = 2 arccosh(|tr g|/2) is the translation length of g. Taking L from the
+     trace is exact; measuring κ as Im M(g·z) instead loses every significant
+     digit once |tr g| is large (long words), which is why that used to report
+     κ = 0 and claim there was no geodesic for perfectly good hyperbolics. */
+  const trAbs=Math.abs(g.a+g.d);
+  if(!(trAbs>2)) return null;
+  const lnK=2*Math.acosh(trAbs/2);
+  if(!isFinite(lnK)||lnK<1e-9) return null;
+  /* centre the period on t=1 rather than running t from 1 to e^L: it is the
+     same closed curve, but the sampled points stay within e^(L/2) of the middle
+     of the axis instead of e^L, which keeps the folding accurate for long words */
+  const N=900, EPS=0.2*Math.max(1,lambda), arcs=[]; let cur=[], prev=null;
+  for(let i=0;i<=N;i++){ const r=reduceToF(zt(Math.exp(lnK*(i/N-0.5))));
     if(prev && Math.hypot(r.x-prev.x,r.y-prev.y)>EPS){ if(cur.length>1)arcs.push(cur); cur=[]; }
     cur.push(r); prev=r; }
   if(cur.length>1) arcs.push(cur);
+  /* How well does the curve actually close? The two ends of one period are the
+     same point of the orbifold, so any gap between them is accumulated rounding
+     error in the float matrix product — it grows by about a digit every couple
+     of letters, and past ~40 letters the picture stops being trustworthy. */
+  lastClosure = orbifoldGap(reduceToF(zt(Math.exp(-lnK/2))), reduceToF(zt(Math.exp(lnK/2))));
   return arcs.length?arcs:null;
+}
+/* distance in H/G_p, allowing for the side pairings z→z±λ and z→−1/z that
+   identify the two ends of F_p (so a boundary point isn't counted as a gap) */
+function orbifoldGap(u,v){
+  const cands=[], n=v.x*v.x+v.y*v.y;
+  for(let k=-1;k<=1;k++) cands.push({x:v.x+k*lambda, y:v.y});
+  if(n>0) for(let k=-1;k<=1;k++) cands.push({x:-v.x/n+k*lambda, y:v.y/n});
+  return Math.min(...cands.map(c=>Math.hypot(u.x-c.x, u.y-c.y)));
 }
 const WQ=460, HQ=460, PADQ=30;
 let qview=null, qFitScale=1;
@@ -421,7 +445,7 @@ function drawQuotient(refit){
   const svg=el('qplot');
   if(refit||!qview) autoFitQ();
   if(!lastFold){ svg.innerHTML=`<text x="${WQ/2}" y="${HQ/2}" fill="var(--muted)" font-size="14" text-anchor="middle">need a hyperbolic axis with two finite endpoints</text>`;
-    el('qViewNote').textContent=''; return; }
+    el('qViewNote').textContent=''; el('qWarn').textContent=''; return; }
   const cp=Math.cos(Math.PI/P), sp=Math.sin(Math.PI/P), half=lambda/2;
   const topY=qYinv(-60), botY=qYinv(HQ+60);     // a little beyond the visible edges
   let s='';
@@ -444,6 +468,10 @@ function drawQuotient(refit){
     s+=`<text x="${qX(0).toFixed(1)}" y="14" fill="var(--muted)" font-size="11" text-anchor="middle">cusp &#8594; &#8734;</text>`;
   svg.innerHTML=s;
   el('qViewNote').textContent=`Im z ∈ [${fmtTick(Math.max(botY,0))}, ${fmtTick(topY)}]`;
+  /* one pixel at the fitted scale is about 0.005, so flag a gap a viewer could see */
+  el('qWarn').textContent = lastClosure>0.01
+    ? `⚠ rounding: the curve misses closing by ${lastClosure.toPrecision(2)} — the word is long enough that double precision is running out`
+    : '';
 }
 
 /* ---------- drawing (upper half-plane) ---------- */
