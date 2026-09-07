@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Interactive visualiser: axes of elements of the Hecke triangle group G_p = <S, T_lambda>, lambda = 2cos(pi/p), in the upper half-plane, and the closed geodesic each one induces on the Hecke orbifold. The case p = 3 is the modular group PSL(2,Z).">
+<meta name="description" content="Interactive visualiser: axes of elements of the Hecke triangle group G_p = <S, T_lambda>, lambda = 2cos(pi/p), computed exactly in Z[lambda], drawn in the upper half-plane together with the closed geodesic each one induces on the Hecke orbifold. The case p = 3 is the modular group PSL(2,Z).">
 <link rel="canonical" href="https://debattam123.github.io/hyperbolic-axis.html">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Hecke Triangle Group Axis Visualizer">
-<meta property="og:description" content="Build a word in the Hecke triangle group G_p, classify it as hyperbolic, parabolic or elliptic, and draw its axis on the tessellation of the hyperbolic plane.">
+<meta property="og:description" content="Build a word in the Hecke triangle group G_p, see its matrix and trace exactly as polynomials in lambda = 2cos(pi/p), classify it as hyperbolic, parabolic or elliptic, and draw its axis on the tessellation of the hyperbolic plane.">
 <meta property="og:url" content="https://debattam123.github.io/hyperbolic-axis.html">
 <meta name="twitter:card" content="summary">
 <title>Hecke Triangle Group Axis Visualizer &mdash; Debattam Das</title>
@@ -63,6 +63,8 @@
   .mat{display:inline-grid;grid-template-columns:auto auto;gap:2px 14px;font-family:ui-monospace,Menlo,Consolas,monospace;
         border-left:2px solid var(--muted);border-right:2px solid var(--muted);padding:4px 10px;margin-top:2px}
   .mat span{text-align:right}
+  .symmat{margin-top:12px;overflow-x:auto}
+  .symmat>div{text-align:center;white-space:nowrap}
   .viz{position:relative}
   .rightcol{display:flex;flex-direction:column;gap:18px;min-width:0}
   svg{width:100%;height:auto;display:block;background:var(--panel2);border-radius:12px}
@@ -184,14 +186,20 @@
          B = <span class="mat"><span>0</span><span>&minus;1</span><span>1</span><span>&lambda;</span></span>,
          &nbsp;&lambda; = 2cos(&pi;/<em>p</em>).
       </p>
+      <p>Every entry of an element of <em>G<sub>p</sub></em> lies in <em>&#8484;[&lambda;]</em>, so the matrix
+         <em>g</em> and its trace are computed and displayed exactly, as integer polynomials in &lambda; reduced by
+         the minimal polynomial of &lambda; = 2cos(&pi;/<em>p</em>) (shown next to the selector); the decimals are
+         only readings of those exact values. For <em>p</em>&nbsp;=&nbsp;3, &lambda;&nbsp;=&nbsp;1 and the entries
+         are ordinary integers. Because the trace is exact, <em>tr g</em>&nbsp;=&nbsp;&plusmn;2 is decided outright,
+         so a parabolic is never mistaken for a hyperbolic with a very short axis.</p>
       <p>The syllables <em>ab</em> and <em>ab</em><sup>&minus;1</sup> are the two conjugate parabolics
          (&minus;<em>T<sub>&lambda;</sub></em> and its transpose), so a sign change in the exponents is needed
          for a hyperbolic axis, exactly as in the modular case
          (<em>p</em>&nbsp;=&nbsp;3, &lambda;&nbsp;=&nbsp;1). When |tr&nbsp;<em>g</em>|&nbsp;&gt;&nbsp;2 the element
          is hyperbolic with two real fixed points
          <em>z</em><sub>&plusmn;</sub> = &bigl;(a&minus;d) &plusmn; &radic;(tr&sup2;&minus;4)&bigr; / 2c,
-         and its axis is the half-circle on those endpoints. Since &lambda; is irrational for
-         <em>p</em>&nbsp;&ne;&nbsp;3, the matrices are computed in floating point rather than exactly.</p>
+         and its axis is the half-circle on those endpoints. The endpoints and the two pictures are then
+         evaluated in floating point, since &lambda; is irrational for <em>p</em>&nbsp;&ne;&nbsp;3.</p>
     </details>
   </div>
 
@@ -231,7 +239,7 @@ let P = 5;                                  // Hecke parameter p
 let lambda = 2*Math.cos(Math.PI/P);         // λ_p
 let A = [[0,-1],[1,0]], B = [[0,-1],[1,lambda]];   // a = S (order 2), b = S T_λ (order p)
 function setP(p){ P=p; lambda=2*Math.cos(Math.PI/P); A=[[0,-1],[1,0]]; B=[[0,-1],[1,lambda]];
-  el('lamNote').innerHTML='&lambda; = '+fmt(lambda); }
+  el('lamNote').innerHTML='&lambda; &asymp; '+fmt(lambda)+', &nbsp;'+lamRelation(); }
 
 /* ---------- 2×2 float matrices ---------- */
 function mul(P_,Q){
@@ -244,6 +252,38 @@ function matPow(M,e){ if(e<0) return matPow(inv2(M),-e);
   let r=[[1,0],[0,1]]; for(let k=0;k<e;k++) r=mul(r,M); return r; }
 function wordMatrix(eps){ let g=[[1,0],[0,1]];
   for(const e of eps) g = mul(mul(g,A), matPow(B,e)); return g; }
+
+/* ---------- exact entries in ℤ[λ], λ = 2cos(π/p), reduced by its minimal polynomial ---------- */
+const MINPOLY={ 3:[-1n,1n], 4:[-2n,0n,1n], 5:[-1n,-1n,1n], 6:[-3n,0n,1n],
+  7:[1n,-2n,-1n,1n], 8:[2n,0n,-4n,0n,1n], 10:[5n,0n,-5n,0n,1n], 12:[1n,0n,-4n,0n,1n] };
+function pTrim(a){ let i=a.length-1; while(i>0 && a[i]===0n) i--; return a.slice(0,i+1); }
+function pAdd(a,b){ const n=Math.max(a.length,b.length),r=[]; for(let i=0;i<n;i++)r.push((a[i]||0n)+(b[i]||0n)); return pTrim(r); }
+function pReduce(a){ const m=MINPOLY[P], d=m.length-1; a=a.slice();
+  for(let k=a.length-1;k>=d;k--){ const c=a[k]; if(c===0n)continue; for(let i=0;i<=d;i++)a[k-d+i]-=c*m[i]; }
+  return pTrim(a); }
+function pMul(a,b){ const r=new Array(a.length+b.length-1).fill(0n);
+  for(let i=0;i<a.length;i++)for(let j=0;j<b.length;j++)r[i+j]+=a[i]*b[j]; return pReduce(r); }
+function pEq(a,b){ a=pTrim(a); b=pTrim(b); return a.length===b.length && a.every((x,i)=>x===b[i]); }
+const P0=[0n],P1=[1n],PN1=[-1n],PL=[0n,1n];
+function pmatMul(X,Y){ return [
+  [pAdd(pMul(X[0][0],Y[0][0]),pMul(X[0][1],Y[1][0])), pAdd(pMul(X[0][0],Y[0][1]),pMul(X[0][1],Y[1][1]))],
+  [pAdd(pMul(X[1][0],Y[0][0]),pMul(X[1][1],Y[1][0])), pAdd(pMul(X[1][0],Y[0][1]),pMul(X[1][1],Y[1][1]))]]; }
+function pmatPow(e){ const base = e<0 ? [[PL,P1],[PN1,P0]] : [[P0,PN1],[P1,PL]]; // B^-1 or B
+  let n=Math.abs(e), r=[[P1,P0],[P0,P1]]; for(let k=0;k<n;k++) r=pmatMul(r,base); return r; }
+function wordMatrixSym(eps){ const As=[[P0,PN1],[P1,P0]]; let g=[[P1,P0],[P0,P1]];
+  for(const e of eps) g=pmatMul(pmatMul(g,As), pmatPow(e)); return g; }
+function polyEval(a){ let v=0; for(let i=a.length-1;i>=0;i--) v=v*lambda+Number(a[i]); return v; }
+function supNum(n){ return ['','','²','³','⁴','⁵','⁶','⁷','⁸','⁹'][n]||('^'+n); }
+function polyStr(a){ a=pTrim(a); if(a.length===1&&a[0]===0n) return '0'; let out='';
+  for(let i=a.length-1;i>=0;i--){ const c=a[i]; if(c===0n)continue; const neg=c<0n, mag=neg?-c:c;
+    const coef=(i===0)?mag.toString():(mag===1n?'':mag.toString());
+    const vr=(i===0)?'':(i===1?'λ':'λ'+supNum(i)); const term=coef+vr;
+    out += out===''?(neg?'−':'')+term : (neg?' − ':' + ')+term; }
+  return out||'0'; }
+function matSymHTML(M){ return '<span class="mat"><span>'+polyStr(M[0][0])+'</span><span>'+polyStr(M[0][1])+
+  '</span><span>'+polyStr(M[1][0])+'</span><span>'+polyStr(M[1][1])+'</span></span>'; }
+function lamRelation(){ const m=MINPOLY[P], d=m.length-1, rhs=[]; for(let i=0;i<d;i++) rhs.push(-m[i]);
+  return 'λ'+(d===1?'':supNum(d))+' = '+polyStr(pTrim(rhs)); }
 
 /* ---------- parsing ---------- */
 function parseEps(str){
@@ -264,16 +304,20 @@ function update(refit){
   if(eps.length===0){ el('status').innerHTML='<div class="row"><span class="k">word</span><span class="v">empty (identity)</span></div>';
       lastGeom=null; lastFold=null; draw(refit); return; }
 
-  const g=wordMatrix(eps);
-  const a=g[0][0],b=g[0][1],c=g[1][0],d=g[1][1];
-  const tr=a+d, absTr=Math.abs(tr), disc=tr*tr-4;
+  /* the entries are computed exactly in ℤ[λ]; the decimals below are read off from them */
+  const gs=wordMatrixSym(eps), trSym=pAdd(gs[0][0],gs[1][1]);
+  const a=polyEval(gs[0][0]), b=polyEval(gs[0][1]), c=polyEval(gs[1][0]), d=polyEval(gs[1][1]);
+  const tr=a+d, disc=tr*tr-4;
+  /* parabolic means tr = ±2 on the nose, which the exact trace settles outright
+     — no epsilon, so a near-miss can no longer be mistaken for a cusp element */
+  const isPar = pEq(trSym,[2n]) || pEq(trSym,[-2n]);
   let cls,tagClass;
-  if(disc>1e-9){ cls='hyperbolic'; tagClass='hyp'; }
-  else if(disc>-1e-9){ cls='parabolic'; tagClass='par'; }
+  if(isPar){ cls='parabolic'; tagClass='par'; }
+  else if(disc>0){ cls='hyperbolic'; tagClass='hyp'; }
   else { cls='elliptic'; tagClass='ell'; }
 
   let geom=null, fpText='&mdash;';
-  if(disc>1e-9){
+  if(cls==='hyperbolic'){
     const s=Math.sqrt(disc);
     if(Math.abs(c)>1e-12){
       const z1=(a-d+s)/(2*c), z2=(a-d-s)/(2*c);
@@ -288,12 +332,12 @@ function update(refit){
   lastFold=(geom&&geom.type==='circle')?foldedGeodesic(geom,{a,b,c,d}):null;
 
   el('status').innerHTML =
-    row('group', 'G<sub>'+P+'</sub>, &lambda;='+fmt(lambda)) +
+    row('group', 'G<sub>'+P+'</sub>, &lambda; = 2cos(&pi;/'+P+')') +
     row('length n', eps.length) +
-    row('g', '<span class="mat"><span>'+fmt(a)+'</span><span>'+fmt(b)+'</span><span>'+fmt(c)+'</span><span>'+fmt(d)+'</span></span>') +
-    row('trace', (tr<0?'&minus;':'')+fmt(absTr)) +
+    row('trace', polyStr(trSym)+' &asymp; '+fmt(tr)) +
     row('type', '<span class="tag '+tagClass+'">'+cls+'</span>') +
-    row('fixed points', fpText);
+    row('fixed points', fpText) +
+    '<div class="symmat"><div>g =&nbsp; '+matSymHTML(gs)+'</div></div>';
   draw(refit);
 }
 function row(k,v){ return '<div class="row"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>'; }
