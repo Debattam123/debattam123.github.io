@@ -17,21 +17,19 @@
   .coauthors { margin-top: 2.2rem; }
   .coauthor-grid {
     list-style: none; margin: 1.1rem 0 0; padding: 0;
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem 1.6rem;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.8rem;
     align-items: start;
   }
   @media (max-width: 640px) { .coauthor-grid { grid-template-columns: 1fr; } }
   .coauthor-grid li {
-    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
-    padding: 0.8rem 0.95rem;
+    padding: 0.5rem 0; border-bottom: 1px solid var(--border); font-size: 0.98rem;
   }
-  .ca-name { display: block; font-size: 1rem; color: var(--accent); }
-  .ca-count {
-    display: block; font-family: 'Helvetica Neue', Arial, sans-serif;
-    font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem;
+  .coauthor-grid a { color: var(--accent); text-decoration: none; }
+  .coauthor-grid a:hover { text-decoration: underline; }
+  .ca-site {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.75rem; color: var(--muted); margin-left: 0.4rem;
   }
-  .ca-papers { display: block; font-size: 0.88rem; margin-top: 0.5rem; }
-  .ca-papers em { color: var(--text); font-style: italic; }
 </style>
 </head>
 <body>
@@ -87,43 +85,14 @@
 
   <section class="coauthors">
     <h2>Coauthors</h2>
-    <p class="pub-venue">Six collaborators across the papers above, in alphabetical order.</p>
+    <p class="pub-venue">In alphabetical order; names link to a homepage where there is one.</p>
     <ul class="coauthor-grid">
-      <li>
-        <span class="ca-name">Anushree Das</span>
-        <span class="ca-count">1 joint paper</span>
-        <span class="ca-papers"><em>Reversible and Other Generalised Torsion Elements in Seifert Fibered Groups</em> (2024)</span>
-      </li>
-      <li>
-        <span class="ca-name">Krishnendu Gongopadhyay</span>
-        <span class="ca-count">6 joint papers</span>
-        <span class="ca-papers"><em>Reversibility and its Asymptotic Counting in Picard Modular Group</em> (in preparation) &middot;
-          <em>Combinatorial Structure of Inert and Ambiguous Classes in Modular Group</em> (2026) &middot;
-          <em>Asymptotic Growth of the Number of Reciprocal Classes in the Hecke Groups</em> (2025) &middot;
-          <em>Spherical Growth of Reciprocal Classes in the Hecke Groups</em> (2024) &middot;
-          <em>On the z-Classes in Fuchsian Groups</em> (2024) &middot;
-          <em>Reciprocity in the Hecke Groups</em> (2024)</span>
-      </li>
-      <li>
-        <span class="ca-name">Khushi Mishra</span>
-        <span class="ca-count">1 joint paper</span>
-        <span class="ca-papers"><em>Combinatorial Structure of Inert and Ambiguous Classes in Modular Group</em> (2026)</span>
-      </li>
-      <li>
-        <span class="ca-name">A. Mukhopadhyay</span>
-        <span class="ca-count">1 joint paper</span>
-        <span class="ca-papers"><em>Reversibility and its Asymptotic Counting in Picard Modular Group</em> (in preparation)</span>
-      </li>
-      <li>
-        <span class="ca-name">Souvik Pal</span>
-        <span class="ca-count">1 joint paper</span>
-        <span class="ca-papers"><em>Minimal Filling Pair of Non-orientable Surfaces</em> (2026)</span>
-      </li>
-      <li>
-        <span class="ca-name">Bidyut Sanki</span>
-        <span class="ca-count">1 joint paper</span>
-        <span class="ca-papers"><em>Minimal Filling Pair of Non-orientable Surfaces</em> (2026)</span>
-      </li>
+      <li>Anushree Das</li>
+      <li><a href="https://sites.google.com/site/krishnendug/">Krishnendu Gongopadhyay</a><span class="ca-site">IISER Mohali</span></li>
+      <li>Khushi Mishra</li>
+      <li>Anirban Mukhopadhyay</li>
+      <li>Souvik Pal</li>
+      <li><a href="https://sites.google.com/view/homebidyut-iitk/home">Bidyut Sanki</a><span class="ca-site">IIT Kanpur</span></li>
     </ul>
   </section>
 </main>
