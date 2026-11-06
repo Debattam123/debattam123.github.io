@@ -10,7 +10,7 @@ Source for [debattam123.github.io](https://debattam123.github.io).
 - `talks.html` — Talks and conferences attended
 - `teaching.html` — Teaching assistantships
 - `style.css` — Shared stylesheet (edit colors/fonts here once, applies everywhere)
-- `cv.pdf` — Downloadable CV
+- CV — the "CV" menu link opens the Dropbox copy of the CV. To update it, replace cv.pdf in the same Dropbox folder with the same file name; the link stays the same.
 - `images/` — Photos
 
 ## One-time setup (important)
